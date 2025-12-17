@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobSync System Architecture Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 50px;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .layer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 60px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            min-width: 300px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .box h3 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .box p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .layer-user .box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .layer-frontend .box { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .layer-api .box { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .layer-backend .box { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .layer-ml .box { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .layer-external .box { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+        .services-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .service-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #2c3e50;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .service-box:hover {
+            transform: scale(1.05);
+        }
+
+        .service-box h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .service-box p {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .arrow {
+            width: 3px;
+            height: 40px;
+            background: #2c3e50;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 15px solid #2c3e50;
+        }
+
+        .label {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .ml-components {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .ml-box {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .ml-box h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .ml-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .ml-box li {
+            font-size: 13px;
+            color: #555;
+            padding: 3px 0;
+        }
+
+        .ml-box li::before {
+            content: "• ";
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JobSync System Architecture</h1>
+
+        <div class="architecture">
+            <!-- Layer 1: User -->
+            <div class="layer layer-user">
+                <div class="box">
+                    <h3>🌐 User Layer</h3>
+                    <p>Web Browser (Chrome, Firefox, Safari, Edge)</p>
+                    <p style="margin-top: 8px; font-size: 12px;">HTML5, CSS3, JavaScript ES6+</p>
+                </div>
+            </div>
+
+            <div class="arrow"></div>
+            <div class="label">HTTP/HTTPS Requests</div>
+
+            <!-- Layer 2: Frontend -->
+            <div class="layer layer-frontend">
+                <div class="box">
+                    <h3>⚛️ Frontend Layer</h3>
+                    <p>Next.js 15 with React 19</p>
+                    <p style="margin-top: 8px; font-size: 12px;">Server-Side Rendering (SSR), App Router</p>
+                    <p style="margin-top: 5px; font-size: 12px;">Tailwind CSS, shadcn/ui Components</p>
+                </div>
+            </div>
+
+            <div class="arrow"></div>
+            <div class="label">API Routes</div>
+
+            <!-- Layer 3: API Gateway -->
+            <div class="layer layer-api">
+                <div class="box">
+                    <h3>🔌 API Gateway Layer</h3>
+                    <p>Next.js API Routes (App Router)</p>
+                    <p style="margin-top: 8px; font-size: 12px;">RESTful APIs, Request Validation, Error Handling</p>
+                </div>
+            </div>
+
+            <div class="arrow"></div>
+            <div class="label">Service Orchestration</div>
+
+            <!-- Layer 4: Backend Services -->
+            <div class="layer layer-backend">
+                <div>
+                    <div class="box" style="margin-bottom: 20px;">
+                        <h3>⚙️ Backend Services Layer</h3>
+                        <p>Microservices Architecture</p>
+                    </div>
+
+                    <div class="services-row">
+                        <div class="service-box">
+                            <h4>🔐 Auth Service</h4>
+                            <p>NextAuth.js</p>
+                            <p style="margin-top: 5px; font-size: 11px;">JWT Sessions, bcrypt</p>
+                            <p style="margin-top: 3px; font-size: 11px;">OAuth Support</p>
+                        </div>
+
+                        <div class="service-box">
+                            <h4>💾 Database Service</h4>
+                            <p>SQLite + Prisma ORM</p>
+                            <p style="margin-top: 5px; font-size: 11px;">Type-safe Queries</p>
+                            <p style="margin-top: 3px; font-size: 11px;">Migration Management</p>
+                        </div>
+
+                        <div class="service-box">
+                            <h4>📊 Business Logic</h4>
+                            <p>Server Actions</p>
+                            <p style="margin-top: 5px; font-size: 11px;">Job Management</p>
+                            <p style="margin-top: 3px; font-size: 11px;">Resume Processing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow"></div>
+            <div class="label">HTTP REST API / Docker Network</div>
+
+            <!-- Layer 5: ML Service -->
+            <div class="layer layer-ml">
+                <div style="width: 100%;">
+                    <div class="box" style="margin-bottom: 20px;">
+                        <h3>🤖 ML Service Layer</h3>
+                        <p>FastAPI (Python 3.11) - Port 8000</p>
+                        <p style="margin-top: 8px; font-size: 12px;">Natural Language Processing & Machine Learning</p>
+                    </div>
+
+                    <div class="ml-components">
+                        <div class="ml-box">
+                            <h4>📝 Skill Extractor</h4>
+                            <ul>
+                                <li>spaCy (en_core_web_md)</li>
+                                <li>PhraseMatcher Algorithm</li>
+                                <li>RapidFuzz (Fuzzy Matching)</li>
+                                <li>150+ Technical Skills DB</li>
+                            </ul>
+                        </div>
+
+                        <div class="ml-box">
+                            <h4>🎓 Course Recommender</h4>
+                            <ul>
+                                <li>Sentence Transformers</li>
+                                <li>all-MiniLM-L6-v2 Model</li>
+                                <li>Cosine Similarity</li>
+                                <li>585 Coursera Courses</li>
+                            </ul>
+                        </div>
+
+                        <div class="ml-box">
+                            <h4>🔍 Skill Comparator</h4>
+                            <ul>
+                                <li>Resume vs Job Analysis</li>
+                                <li>Match Percentage Calc</li>
+                                <li>Gap Identification</li>
+                                <li>Semantic Understanding</li>
+                            </ul>
+                        </div>
+
+                        <div class="ml-box">
+                            <h4>📦 Data Storage</h4>
+                            <ul>
+                                <li>Pre-computed Embeddings</li>
+                                <li>Pickle Serialization</li>
+                                <li>Fast Vector Search</li>
+                                <li>Embedding Cache</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow"></div>
+            <div class="label">OpenAI API / HTTPS</div>
+
+            <!-- Layer 6: External Services -->
+            <div class="layer layer-external">
+                <div>
+                    <div class="box" style="margin-bottom: 20px;">
+                        <h3>🌍 External Services</h3>
+                        <p>Third-Party Integrations</p>
+                    </div>
+
+                    <div class="services-row">
+                        <div class="service-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h4 style="color: white;">🧠 OpenAI API</h4>
+                            <p style="color: rgba(255,255,255,0.9);">GPT-3.5-turbo</p>
+                            <p style="margin-top: 5px; font-size: 11px; color: rgba(255,255,255,0.8);">Resume Review</p>
+                            <p style="margin-top: 3px; font-size: 11px; color: rgba(255,255,255,0.8);">Job Match Scoring</p>
+                        </div>
+
+                        <div class="service-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                            <h4 style="color: white;">📚 Coursera Data</h4>
+                            <p style="color: rgba(255,255,255,0.9);">Course Database</p>
+                            <p style="margin-top: 5px; font-size: 11px; color: rgba(255,255,255,0.8);">585 Courses</p>
+                            <p style="margin-top: 3px; font-size: 11px; color: rgba(255,255,255,0.8);">Metadata & Links</p>
+                        </div>
+
+                        <div class="service-box" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #2c3e50;">
+                            <h4>☁️ GCP Hosting</h4>
+                            <p>Compute Engine</p>
+                            <p style="margin-top: 5px; font-size: 11px;">e2-medium Instance</p>
+                            <p style="margin-top: 3px; font-size: 11px;">asia-south1-a</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 50px; padding: 30px; background: #f8f9fa; border-radius: 15px; border-left: 5px solid #667eea;">
+            <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 20px;">🔑 Key Architecture Features</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>Layered Architecture:</strong> Clear separation of concerns across 6 layers</li>
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>Microservices Design:</strong> Independent services (Auth, DB, ML) for scalability</li>
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>Containerization:</strong> Docker containers for consistent deployment</li>
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>API-First Approach:</strong> RESTful APIs for inter-service communication</li>
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>AI Integration:</strong> OpenAI GPT + Custom ML models</li>
+                <li style="padding: 8px 0; color: #555; font-size: 14px;">✅ <strong>Cloud Deployment:</strong> Google Cloud Platform with auto-scaling potential</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
+            <h3 style="margin-bottom: 15px; font-size: 18px;">📈 Technology Stack Summary</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 15px;">
+                <div>
+                    <strong style="font-size: 14px;">Frontend:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Next.js 15, React 19, Tailwind CSS</p>
+                </div>
+                <div>
+                    <strong style="font-size: 14px;">Backend:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Node.js, NextAuth, Prisma ORM</p>
+                </div>
+                <div>
+                    <strong style="font-size: 14px;">ML/AI:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">Python, FastAPI, spaCy, Transformers</p>
+                </div>
+                <div>
+                    <strong style="font-size: 14px;">Database:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">SQLite, File-based, ACID</p>
+                </div>
+                <div>
+                    <strong style="font-size: 14px;">Cloud:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">GCP Compute Engine, Docker</p>
+                </div>
+                <div>
+                    <strong style="font-size: 14px;">AI Services:</strong>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.9;">OpenAI GPT-3.5, LangChain</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
