@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { signupUser } from "@/actions/signup.actions";
+import { useRouter } from "next/navigation";
 import {
   Form,
   FormControl,
@@ -44,15 +46,23 @@ const FormSchema = z.object({
 });
 
 export default function Signup() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    // defaultValues: {
-    //   username: "",
-    // },
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    console.log("onsubmit data: ", data);
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    const error = await signupUser(data);
+    if (error) {
+      form.setError("email", { message: error });
+      return;
+    }
+    router.push("/signin");
   }
 
   return (
@@ -65,9 +75,7 @@ export default function Signup() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-          // className="w-2/3 space-y-6"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <FormField

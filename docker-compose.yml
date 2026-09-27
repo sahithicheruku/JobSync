@@ -1,36 +1,47 @@
 services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jobsync}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-jobsync}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
   app:
-    container_name: jobsync_app
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "3000:3000"
+    env_file: .env
     environment:
-      # Please do not forget to create and update your .env file
-      - NODE_ENV=production
-      - DATABASE_URL=file:/data/dev.db
-      - USER_EMAIL=${USER_EMAIL}
-      - USER_PASSWORD=${USER_PASSWORD}
-      - AUTH_SECRET=${AUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - AUTH_TRUST_HOST=${AUTH_TRUST_HOST}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ML_SERVICE_URL=http://ml-service:8000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jobsync}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jobsync}?schema=public
+      ML_SERVICE_URL: http://ml-service:8000
     volumes:
       - ./jobsyncdb/data:/data
     depends_on:
-      - ml-service
+      db:
+        condition: service_healthy
+      ml-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
     restart: unless-stopped
-
   ml-service:
-    container_name: jobsync_ml
-    build:
-      context: ./ml-service
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    build: ./ml-service
     environment:
-      - PYTHONUNBUFFERED=1
+      PYTHONUNBUFFERED: "1"
     restart: unless-stopped
+volumes:
+  postgres-data:

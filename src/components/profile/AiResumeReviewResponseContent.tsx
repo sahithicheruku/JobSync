@@ -26,7 +26,7 @@ export const AiResumeReviewResponseContent = ({
   return (
     <>
       <div className="pt-2 flex justify-center">
-        {score ? (
+        {typeof score === "number" ? (
           <RadialChartComponent score={score ?? "-"} />
         ) : (
           <RadialChartSekeleton />

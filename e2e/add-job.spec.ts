@@ -8,9 +8,9 @@ test.beforeEach(async ({ page, baseURL }) => {
 
 async function login(page: Page) {
   await page.getByPlaceholder("id@example.com").click();
-  await page.getByPlaceholder("id@example.com").fill("admin@example.com");
+  await page.getByPlaceholder("id@example.com").fill(process.env.E2E_EMAIL!);
   await page.getByLabel("Password").click();
-  await page.getByLabel("Password").fill("password123");
+  await page.getByLabel("Password").fill(process.env.E2E_PASSWORD!);
   await page.getByRole("button", { name: "Login" }).click();
 }
 

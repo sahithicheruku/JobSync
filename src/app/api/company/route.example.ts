@@ -11,11 +11,11 @@
 //   console.log("SESSION: ", session);
 //   const userId = session?.accessToken.sub;
 //   /* SESSION:  {
-//     user: { name: 'Admin', email: 'admin@example.com' },
+//     user: { name: 'Admin', email: 'test-user@example.test' },
 //     expires: '2024-07-04T06:16:33.616Z',
 //     accessToken: {
 //       name: 'Admin',
-//       email: 'admin@example.com',
+//       email: 'test-user@example.test',
 //       sub: '24c84c85-b6a9-40ea-bccb-1b883bcc64cd',
 //       iat: 1717481780,
 //       exp: 1720073780,

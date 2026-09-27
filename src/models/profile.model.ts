@@ -69,6 +69,8 @@ export interface ResumeSection {
   sectionTitle: string;
   sectionType: SectionType;
   summary?: Summary;
+  others?: { title: string; content: string }[];
+  licenseOrCertifications?: { title: string; organization: string }[];
   workExperiences?: WorkExperience[];
   educations?: Education[];
 }

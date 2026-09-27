@@ -1,196 +1,30 @@
 "use client";
-import { getResumeList } from "@/actions/profile.actions";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetPortal,
-  SheetTitle,
-} from "../ui/sheet";
 import { useEffect, useRef, useState } from "react";
+import { getResumeList } from "@/actions/profile.actions";
 import { Resume } from "@/models/profile.model";
-import { toast } from "../ui/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import Loading from "../Loading";
-import { AiModel, defaultModel, JobMatchResponse } from "@/models/ai.model";
-import { AiJobMatchResponseContent } from "./AiJobMatchResponseContent";
+import { defaultModel } from "@/models/ai.model";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
-
-interface AiSectionProps {
-  aISectionOpen: boolean;
-  triggerChange: (openState: boolean) => void;
-  jobId: string;
-}
-
-export const AiJobMatchSection = ({
-  aISectionOpen,
-  triggerChange,
-  jobId,
-}: AiSectionProps) => {
-  const [aIContent, setAIContent] = useState<JobMatchResponse | any>("");
-  const [loading, setLoading] = useState(false);
-  const [selectedResumeId, setSelectedResumeId] = useState<string>();
-
-  // Get AI settings (migration handled at app root level)
-  const selectedModel: AiModel = getFromLocalStorage("aiSettings", defaultModel);
-
-  const resumesRef = useRef<Resume[]>([]);
-  const getResumes = async () => {
-    try {
-      const { data, total, success, message } = await getResumeList();
-      if (!data || data.ResumeSections?.length === 0) {
-        throw new Error("Resume content is required");
-      }
-      resumesRef.current = data;
-      if (!success) {
-        setLoading(false);
-        throw new Error(message);
-      }
-    } catch (error) {
-      const message = "Error fetching resume list";
-      const description = error instanceof Error ? error.message : message;
-      setLoading(false);
-      toast({
-        variant: "destructive",
-        title: "Error!",
-        description,
-      });
-    }
-  };
-  const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(
-    null
-  );
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const getJobMatch = async (resumeId: string, jobId: string) => {
-    try {
-      setLoading(true);
-      // if (
-      //   abortControllerRef.current
-      //   //   && (await readerRef?.current?.closed) === false
-      // ) {
-      //   await abortStream();
-      // }
-      setAIContent("");
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      // Force OpenAI as the model provider
-      const modelToUse = { ...defaultModel };
-      console.log("[Client] Sending AI request with model:", JSON.stringify(modelToUse));
-
-      const response = await fetch("/api/ai/resume/match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeId, jobId, selectedModel: modelToUse }),
-        signal: abortController.signal,
-      });
-
-      if (!response.body) {
-        setLoading(false);
-        throw new Error("No response body");
-      }
-
-      if (!response.ok) {
-        setLoading(false);
-        throw new Error(response.statusText);
-      }
-
-      const reader = response.body.getReader();
-      readerRef.current = reader;
-      const decoder = new TextDecoder();
-      let done = false;
-      setLoading(false);
-
-      while (!done && !abortController.signal.aborted) {
-        const { value, done: doneReading } = await reader.read();
-
-        done = doneReading;
-        const chunk = decoder.decode(value, { stream: !done });
-        const parsedChunk = JSON.parse(JSON.stringify(chunk));
-        setAIContent((prev: any) => prev + parsedChunk);
-      }
-      reader.releaseLock();
-    } catch (error) {
-      const message = "Error fetching job matching response";
-      const description = error instanceof Error ? error.message : message;
-      setLoading(false);
-      toast({
-        variant: "destructive",
-        title: "Error!",
-        description,
-      });
-    }
-  };
-
-  const abortStream = async () => {
-    abortControllerRef.current?.abort();
-    console.log("aborting stream");
-    await readerRef?.current?.cancel();
-  };
-
-  const onSelectResume = async (resumeId: string) => {
-    setSelectedResumeId(resumeId);
-    await getJobMatch(resumeId, jobId);
-  };
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
+import { Button } from "../ui/button";
+import { AiJobMatchResponseContent } from "./AiJobMatchResponseContent";
+export function AiJobMatchSection({ aISectionOpen, triggerChange, jobId }: { aISectionOpen: boolean; triggerChange: (open: boolean) => void; jobId: string }) {
+  const [resumes, setResumes] = useState<Resume[]>([]), [selected, setSelected] = useState("");
+  const [loading, setLoading] = useState(false), [error, setError] = useState(""), [content, setContent] = useState("");
+  const request = useRef<AbortController | undefined>(undefined);
   useEffect(() => {
-    getResumes();
-  }, []);
-  return (
-    <Sheet open={aISectionOpen} onOpenChange={triggerChange}>
-      <SheetPortal>
-        <SheetContent className="overflow-y-scroll">
-          <SheetHeader>
-            <SheetTitle>
-              AI Job Match
-            </SheetTitle>
-          </SheetHeader>
-          {!selectedResumeId && (
-            <div className="mt-4">
-              <Select value={selectedResumeId} onValueChange={onSelectResume}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select a resume" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {resumesRef.current.map((resume) => (
-                      <SelectItem
-                        key={resume.id}
-                        value={resume.id!}
-                        className="capitalize"
-                      >
-                        {resume.title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="mt-2">
-            {loading ? (
-              <div className="flex items-center flex-col">
-                <Loading />
-                <div>Loading...</div>
-              </div>
-            ) : (
-              <>
-                <AiJobMatchResponseContent content={aIContent} />
-                {/* <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-                  <code className="text-white">{aIContent}</code>
-                </pre> */}
-              </>
-            )}
-          </div>
-        </SheetContent>
-      </SheetPortal>
-    </Sheet>
-  );
-};
+    if (!aISectionOpen) { request.current?.abort(); return; }
+    let active = true;
+    getResumeList(1,100).then(result => { if (active) { if (!result?.success) setError(result?.message || "Cannot load resumes"); else setResumes(result.data); } }).catch(() => { if (active) setError("Cannot load resumes"); });
+    return () => { active = false; request.current?.abort(); };
+  }, [aISectionOpen]);
+  async function match() {
+    request.current?.abort(); const controller = new AbortController(); request.current = controller;
+    setLoading(true); setError(""); setContent("");
+    try {
+      const response = await fetch("/api/ai/resume/match", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({ resumeId: selected, jobId, selectedModel: getFromLocalStorage("aiSettings", defaultModel) }) });
+      const body = await response.json(); if (!response.ok) throw new Error(body.error || "Analysis failed"); setContent(JSON.stringify(body));
+    } catch (e) { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Analysis failed"); }
+    finally { if (request.current === controller) setLoading(false); }
+  }
+  return <Sheet open={aISectionOpen} onOpenChange={triggerChange}><SheetContent className="overflow-y-auto"><SheetHeader><SheetTitle>Explainable job match</SheetTitle><SheetDescription>Compare your saved resume with this job using cited evidence and transparent weights.</SheetDescription></SheetHeader><label className="mt-4 block">Resume<select className="my-2 w-full rounded border bg-background p-2" value={selected} onChange={e => { setSelected(e.target.value); setContent(""); }} disabled={loading}><option value="">Select a resume</option>{resumes.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}</select></label><Button disabled={!selected || loading} onClick={match}>{loading ? "Analyzing…" : "Analyze fit"}</Button>{error && <p role="alert">{error}</p>}<AiJobMatchResponseContent content={content} /></SheetContent></Sheet>;
+}

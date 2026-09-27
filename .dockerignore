@@ -3,3 +3,18 @@ npm-debug.log
 .next
 .vscode
 .git
+
+# Separate application and local artifacts
+portfolio/
+coverage/
+test-results/
+playwright-report/
+
+# Runtime secrets and private data must not enter build images
+.env*
+!.env.example
+jobsyncdb/
+data/
+Resume.pdf
+*.db
+*.db-journal

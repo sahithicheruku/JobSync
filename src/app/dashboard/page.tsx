@@ -3,6 +3,7 @@ import {
   getActivityDataForPeriod,
   getJobsActivityForPeriod,
   getJobsAppliedForPeriod,
+  getJobsAppliedTotal,
   getRecentJobs,
 } from "@/actions/dashboard.actions";
 import ActivityCalendar from "@/components/dashboard/ActivityCalendar";
@@ -13,6 +14,7 @@ import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Metadata } from "next";
+import { format } from "date-fns";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 
 export default async function Dashboard() {
   const [
+    jobsAppliedTotal,
     { count: jobsAppliedLast7Days, trend: trendFor7Days },
     { count: jobsAppliedLast30Days, trend: trendFor30Days },
     recentJobs,
@@ -27,6 +30,7 @@ export default async function Dashboard() {
     activitiesData,
     activityCalendarData,
   ] = await Promise.all([
+    getJobsAppliedTotal(),
     getJobsAppliedForPeriod(7),
     getJobsAppliedForPeriod(30),
     getRecentJobs(),
@@ -35,6 +39,10 @@ export default async function Dashboard() {
     getActivityCalendarData(),
   ]);
   const activityCalendarDataKeys = Object.keys(activityCalendarData);
+  if (!activityCalendarDataKeys.length) {
+    activityCalendarData[format(new Date(), "yyyy")] = [];
+    activityCalendarDataKeys.push(format(new Date(), "yyyy"));
+  }
   const activitiesDataKeys = (data: string[]) =>
     Array.from(
       new Set(
@@ -47,7 +55,7 @@ export default async function Dashboard() {
     <>
       <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-2">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
-          <JobsApplied />
+          <JobsApplied count={jobsAppliedTotal} />
           <NumberCard
             label="Last 7 days"
             num={jobsAppliedLast7Days}
@@ -64,14 +72,14 @@ export default async function Dashboard() {
             <TabsTrigger value="jobs">Weekly Jobs</TabsTrigger>
             <TabsTrigger value="activities">Activities</TabsTrigger>
           </TabsList>
-          <TabsContent value="jobs">
+          <TabsContent className="min-w-0" value="jobs">
             <WeeklyBarChart
               data={weeklyData}
               keys={["value"]}
               axisLeftLegend="NUMBER OF JOBS APPLIED"
             />
           </TabsContent>
-          <TabsContent value="activities">
+          <TabsContent className="min-w-0" value="activities">
             <WeeklyBarChart
               data={activitiesData}
               keys={activitiesDataKeys(activitiesData)}

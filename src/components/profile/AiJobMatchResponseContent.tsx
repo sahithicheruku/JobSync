@@ -21,10 +21,10 @@ export const AiJobMatchResponseContent = ({ content }: { content: string }) => {
   return (
     <>
       <div className="pt-2 flex justify-center">
-        {parsedContent.matching_score ? (
+        {typeof parsedContent.matching_score === "number" ? (
           <RadialChartComponent score={parsedContent.matching_score} />
         ) : (
-          <RadialChartSekeleton />
+          <p className="pb-16">Score unavailable — insufficient evidence.</p>
         )}
       </div>
       <div className="mt-[-50px]">

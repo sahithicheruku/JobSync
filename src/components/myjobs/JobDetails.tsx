@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import { ArrowLeft, Sparkles, GraduationCap } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AiJobMatchSection } from "../profile/AiJobMatchSection";
 import { useState } from "react";
@@ -21,7 +21,6 @@ import { CourseRecommendations } from "../courses/CourseRecommendations";
 
 function JobDetails({ job }: { job: JobResponse }) {
   const [aiSectionOpen, setAiSectionOpen] = useState(false);
-  const [showCourses, setShowCourses] = useState(false);
   const router = useRouter();
   const goBack = () => router.back();
   const getAiJobMatch = async () => {
@@ -46,17 +45,6 @@ function JobDetails({ job }: { job: JobResponse }) {
           <ArrowLeft />
         </Button>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1 cursor-pointer"
-            onClick={() => setShowCourses(!showCourses)}
-          >
-            <GraduationCap className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-              {showCourses ? "Hide Courses" : "Get Course Recommendations"}
-            </span>
-          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -99,7 +87,9 @@ function JobDetails({ job }: { job: JobResponse }) {
                 className={cn(
                   "w-[70px] justify-center",
                   job.Status?.value === "applied" && "bg-cyan-500",
-                  job.Status?.value === "interview" && "bg-green-500"
+                  job.Status?.value === "interview" && "bg-green-500",
+                  job.Status?.value === "rejected" && "bg-blue-500",
+                  job.Status?.value === "offer" && "bg-purple-500"
                 )}
               >
                 {job.Status?.label}
@@ -127,15 +117,15 @@ function JobDetails({ job }: { job: JobResponse }) {
           <CardFooter></CardFooter>
         </Card>
       )}
-      {showCourses && job?.description && (
+      {
         <div className="mt-6">
           <CourseRecommendations
-            jobDescription={job.description}
+            jobDescription={job?.description || ""}
             resumeSkills={[]}
             jobId={job.id}
           />
         </div>
-      )}
+      }
       {
         <AiJobMatchSection
           jobId={job?.id}

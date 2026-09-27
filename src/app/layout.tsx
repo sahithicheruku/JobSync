@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     template: "%s | JobSync",
     default: "JobSync",
   },
-  description: "Job Application Tracking System",
+  description: "AI Career Intelligence: explainable job matching, resume analysis, and career insights",
 };
 
 interface Props {

@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,6 +18,7 @@ model User {
   email        String         @unique
   password     String
   createdAt    DateTime       @default(now())
+  analyses     CareerAnalysis[]
   jobsApplied  Job[]
   JobTitle     JobTitle[]
   Location     Location[]
@@ -284,6 +285,8 @@ model Course {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   CourseRecommendations  CourseRecommendation[]
+
+  @@unique([courseUrl])
 }
 
 model CourseRecommendation {
@@ -300,4 +303,32 @@ model CourseRecommendation {
 
   @@index([userId, jobId])
   @@index([courseId])
+  @@unique([userId, jobId, courseId, missingSkill])
+}
+
+// Immutable analysis snapshots support reproducible comparisons and real insights.
+model CareerAnalysis {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind         String
+  resumeId     String
+  resumeTitle  String
+  resumeHash   String
+  jobId        String?
+  jobTitle     String?
+  jobHash      String?
+  provider     String
+  model        String
+  rubric       String
+  result       Json
+  createdAt    DateTime @default(now())
+
+  @@index([userId, kind, createdAt])
+}
+
+model RequestLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
 }

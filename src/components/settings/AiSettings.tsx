@@ -35,8 +35,8 @@ function AiSettings() {
 
   useEffect(() => {
     const savedSettings = getFromLocalStorage("aiSettings", defaultModel);
-    // Migrate old Ollama settings to OpenAI
-    if (savedSettings.provider === AiProvider.OLLAMA) {
+    // Normalize obsolete OpenAI model selections
+    if (savedSettings.provider === AiProvider.OPENAI && savedSettings.model !== defaultModel.model) {
       const migratedSettings = defaultModel;
       saveToLocalStorage("aiSettings", migratedSettings);
       setSelectedModel(migratedSettings);
@@ -123,7 +123,7 @@ function AiSettings() {
               <SelectGroup>
                 {getModelsList(selectedModel.provider).map(([key, value]) => (
                   <SelectItem key={key} value={value} className="capitalize">
-                    {value}
+                    {value === "server-default" ? "Configured OpenAI model" : value}
                   </SelectItem>
                 ))}
               </SelectGroup>

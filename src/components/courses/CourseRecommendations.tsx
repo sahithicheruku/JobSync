@@ -45,6 +45,7 @@ export function CourseRecommendations({
           jobDescription,
           resumeSkills: resumeSkills.length > 0 ? resumeSkills : [],
           topN: 12,
+          jobId,
         }),
       });
 
@@ -103,7 +104,7 @@ export function CourseRecommendations({
               className="w-full sm:w-auto"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Analyzing..." : "Analyze Skills & Get Recommendations"}
+              {loading ? "Analyzing..." : "Get Recommendations"}
             </Button>
           )}
         </CardContent>

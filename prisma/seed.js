@@ -14,7 +14,12 @@ async function seedUser() {
       );
       return;
     }
-    const password = await bcrypt.hash(process.env.USER_PASSWORD, 10);
+    const seeded = await prisma.user.findUnique({ where: { email } });
+    if (seeded) return;
+    if (!process.env.USER_PASSWORD || process.env.USER_PASSWORD.length < 12) {
+      throw new Error("Set USER_PASSWORD to at least 12 characters before creating the initial account.");
+    }
+    const password = await bcrypt.hash(process.env.USER_PASSWORD, 12);
     // Check if the user already exists
     const existingUser = await prisma.user.findUnique({
       where: {

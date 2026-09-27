@@ -218,4 +218,47 @@ async def get_courses_by_skill(skill: str, top_n: int = 5):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+class SimilarityRequest(BaseModel):
+    resume: str
+    job: str
+
+
+@app.post("/api/semantic-similarity")
+def semantic_similarity(request: SimilarityRequest):
+    import numpy as np
+    if not course_recommender:
+        raise HTTPException(status_code=503, detail="Model unavailable")
+    if not (30 <= len(request.resume) <= 60000 and 1 <= len(request.job) <= 40000):
+        raise HTTPException(status_code=422, detail="Invalid document length")
+    # Chunk by tokenizer tokens so no tail content is silently truncated.
+    model = course_recommender.model
+    def embedding(text):
+        tokens = model.tokenizer.encode(text, add_special_tokens=False)
+        size = model.max_seq_length - 2
+        chunks = [model.tokenizer.decode(tokens[i:i + size]) for i in range(0, len(tokens), size)]
+        vector = np.mean(model.encode(chunks, normalize_embeddings=True), axis=0)
+        return vector / max(float(np.linalg.norm(vector)), 1e-12)
+    cosine = float(np.dot(embedding(request.resume), embedding(request.job)))
+    return {"score": round(max(0.0, min(1.0, cosine)) * 100, 2), "model": "all-MiniLM-L6-v2"}
+
+
+@app.post("/api/resume-text")
+async def resume_text(file: UploadFile = File(...)):
+    contents = await file.read(10 * 1024 * 1024 + 1)
+    if len(contents) > 10 * 1024 * 1024 or not contents.startswith(b"%PDF"):
+        raise HTTPException(status_code=422, detail="Expected PDF under 10 MB")
+    try:
+        reader = PdfReader(io.BytesIO(contents))
+        if len(reader.pages) > 50:
+            raise HTTPException(status_code=422, detail="Too many pages")
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        if not 30 <= len(text) <= 60000:
+            raise HTTPException(status_code=422, detail="Unreadable or oversized resume")
+        return {"text": text}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422, detail="Could not parse PDF")
