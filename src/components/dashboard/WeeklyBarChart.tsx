@@ -1,5 +1,4 @@
 "use client";
-import { barChartData } from "@/lib/data/barChartData";
 import { ResponsiveBar } from "@nivo/bar";
 import { Card, CardContent } from "../ui/card";
 
@@ -18,7 +17,7 @@ export default function WeeklyBarChart({
 }: WeeklyBarChartProps) {
   return (
     <Card className="mb-2 lg:mb-0">
-      <CardContent className="h-[240px] p-3">
+      <CardContent className="h-[240px] w-full min-w-0 p-3">
         <ResponsiveBar
           data={data}
           keys={keys}

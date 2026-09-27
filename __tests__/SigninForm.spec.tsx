@@ -64,7 +64,7 @@ describe("SigninForm Component", () => {
     (authenticate as jest.Mock).mockResolvedValueOnce(null);
 
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "admin@example.com" },
+      target: { value: "test-user@example.test" },
     });
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "password" },
@@ -83,7 +83,7 @@ describe("SigninForm Component", () => {
     (authenticate as jest.Mock).mockResolvedValueOnce(errorMessage);
 
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "admin@example.com" },
+      target: { value: "test-user@example.test" },
     });
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "wrongpassword" },

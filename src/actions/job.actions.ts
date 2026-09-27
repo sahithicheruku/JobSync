@@ -156,6 +156,7 @@ export const getJobDetails = async (
     const job = await prisma.job.findUnique({
       where: {
         id: jobId,
+        userId: user.id,
       },
       include: {
         JobSource: true,
@@ -230,6 +231,7 @@ export const addJob = async (
       resume,
     } = data;
 
+    await assertJobRelations(user.id, data);
     const job = await prisma.job.create({
       data: {
         jobTitleId: title,
@@ -246,7 +248,7 @@ export const addJob = async (
         userId: user.id,
         jobUrl,
         applied,
-        resumeId: resume,
+        resumeId: resume || null,
       },
     });
     return { job, success: true };
@@ -286,9 +288,11 @@ export const updateJob = async (
       resume,
     } = data;
 
+    await assertJobRelations(user.id, data);
     const job = await prisma.job.update({
       where: {
         id,
+        userId: user.id,
       },
       data: {
         jobTitleId: title,
@@ -304,7 +308,7 @@ export const updateJob = async (
         jobType: type,
         jobUrl,
         applied,
-        resumeId: resume,
+        resumeId: resume || null,
       },
     });
     // revalidatePath("/dashboard/myjobs", "page");
@@ -381,3 +385,14 @@ export const deleteJobById = async (
     return handleError(error, msg);
   }
 };
+
+async function assertJobRelations(userId: string, data: z.infer<typeof AddJobFormSchema>) {
+  AddJobFormSchema.parse(data);
+  const [company, title, location, resume] = await Promise.all([
+    prisma.company.findFirst({ where: { id: data.company, createdBy: userId } }),
+    prisma.jobTitle.findFirst({ where: { id: data.title, createdBy: userId } }),
+    prisma.location.findFirst({ where: { id: data.location, createdBy: userId } }),
+    data.resume ? prisma.resume.findFirst({ where: { id: data.resume, profile: { userId } } }) : true,
+  ]);
+  if (!company || !title || !location || !resume) throw new Error("Selected record not found.");
+}

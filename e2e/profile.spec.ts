@@ -3,9 +3,9 @@ import { test, expect, type Page } from "@playwright/test";
 test.beforeEach(async ({ page, baseURL }) => {
   await page.goto("/");
   await page.getByPlaceholder("id@example.com").click();
-  await page.getByPlaceholder("id@example.com").fill("admin@example.com");
+  await page.getByPlaceholder("id@example.com").fill(process.env.E2E_EMAIL!);
   await page.getByLabel("Password").click();
-  await page.getByLabel("Password").fill("password123");
+  await page.getByLabel("Password").fill(process.env.E2E_PASSWORD!);
   await page.getByRole("button", { name: "Login" }).click();
 
   await expect(page).toHaveURL(baseURL + "/dashboard");
@@ -82,7 +82,7 @@ test.describe("Profile page", () => {
       .getByLabel("Headline")
       .fill("Skill developer with testing skills");
     await page.getByLabel("Headline").press("Tab");
-    await page.getByLabel("Email").fill("admin@example.com");
+    await page.getByLabel("Email").fill(process.env.E2E_EMAIL!);
     await page.getByLabel("Email").press("Tab");
     await page.getByLabel("Phone").fill("123456789");
     await page.getByLabel("Phone").press("Tab");

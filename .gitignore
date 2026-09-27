@@ -45,3 +45,6 @@ dev.db-journal
 /blob-report/
 /playwright/.cache/
 data/files/resumes
+graphify-out/
+__pycache__/
+*.pyc

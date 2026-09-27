@@ -10,12 +10,13 @@ import {
 import { PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function JobsAppliedCard() {
+export default function JobsAppliedCard({ count }: { count: number }) {
   const router = useRouter();
   return (
     <Card className="sm:col-span-2">
       <CardHeader className="pb-3">
         <CardTitle>Jobs Applied</CardTitle>
+        <CardTitle className="text-4xl">{count}</CardTitle>
         <CardDescription className="max-w-lg text-balance leading-relaxed">
           Create new jobs to apply and track.
         </CardDescription>

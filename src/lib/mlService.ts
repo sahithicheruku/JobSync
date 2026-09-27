@@ -70,6 +70,7 @@ class MLServiceClient {
   async extractSkills(text: string): Promise<SkillExtractionResponse> {
     const response = await fetch(`${this.baseURL}/api/extract-skills`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
@@ -90,6 +91,7 @@ class MLServiceClient {
 
     const response = await fetch(`${this.baseURL}/api/extract-skills-from-pdf`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       body: formData,
     });
 
@@ -109,6 +111,7 @@ class MLServiceClient {
   ): Promise<SkillComparisonResponse> {
     const response = await fetch(`${this.baseURL}/api/compare-skills`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         resume_skills: resumeSkills,
@@ -132,6 +135,7 @@ class MLServiceClient {
   ): Promise<CourseRecommendationResponse> {
     const response = await fetch(`${this.baseURL}/api/recommend-courses`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         missing_skills: missingSkills,
@@ -157,6 +161,7 @@ class MLServiceClient {
   ): Promise<JobAnalysisResponse> {
     const response = await fetch(`${this.baseURL}/api/analyze-job`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         job_description: jobDescription,
@@ -181,6 +186,7 @@ class MLServiceClient {
   ): Promise<CourseRecommendationResponse> {
     const response = await fetch(`${this.baseURL}/api/search-courses`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query,

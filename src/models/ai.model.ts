@@ -32,12 +32,10 @@ export enum OllamaModel {
 }
 
 export enum OpenaiModel {
-  GPT3_5 = "gpt-3.5-turbo",
-  // GPT4o = "gpt-4o",
-  // GPT4_TURBO = "gpt-4-turbo", // expensive model, but faster
+  DEFAULT = "server-default",
 }
 
 export const defaultModel: AiModel = {
   provider: AiProvider.OPENAI,
-  model: OpenaiModel.GPT3_5,
+  model: OpenaiModel.DEFAULT,
 };

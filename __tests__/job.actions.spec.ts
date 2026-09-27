@@ -34,7 +34,10 @@ jest.mock("@prisma/client", () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    company: { findFirst: jest.fn().mockResolvedValue({ id: "company-id" }) },
+    jobTitle: { findFirst: jest.fn().mockResolvedValue({ id: "job-title-id" }) },
     location: {
+      findFirst: jest.fn().mockResolvedValue({ id: "location-id" }),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -195,6 +198,7 @@ describe("jobActions", () => {
     expect(prisma.job.findUnique).toHaveBeenCalledWith({
       where: {
         id: "2",
+        userId: mockUser.id,
       },
       include: {
         JobSource: true,
@@ -309,7 +313,7 @@ describe("jobActions", () => {
           userId: mockUser.id,
           jobUrl: jobData.jobUrl,
           applied: jobData.applied,
-          resumeId: jobData.resume,
+          resumeId: null,
         },
       });
     });
@@ -338,7 +342,7 @@ describe("jobActions", () => {
           jobType: jobData.type,
           userId: mockUser.id,
           applied: jobData.applied,
-          resumeId: jobData.resume,
+          resumeId: null,
         },
       });
       expect(result).toEqual({ job: jobData, success: true });

@@ -1,5 +1,5 @@
 # Use the official Node.js 22 LTS image as the base image
-FROM node:20.18.0-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV DATABASE_URL=file:/data/dev.db
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/jobsync
 
 # Generate Prisma client
 RUN npx prisma generate

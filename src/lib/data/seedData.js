@@ -2,6 +2,8 @@ const STATUS_DATA = [
   { label: "Draft", value: "draft" },
   { label: "Applied", value: "applied" },
   { label: "Interview", value: "interview" },
+  { label: "Follow-up", value: "follow-up" },
+  { label: "Stage 2", value: "stage-2" },
   { label: "Offer", value: "offer" },
   { label: "Rejected", value: "rejected" },
   { label: "Expired", value: "expired" },

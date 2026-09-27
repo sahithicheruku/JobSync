@@ -302,7 +302,7 @@ describe("Company Actions", () => {
       });
 
       expect(prisma.company.update).toHaveBeenCalledWith({
-        where: { id: "company-id" },
+        where: { id: "company-id", createdBy: "user-id" },
         data: {
           value: "updated company",
           label: "Updated Company",
@@ -374,7 +374,7 @@ describe("Company Actions", () => {
       const result = await getCompanyById(mockCompanyId);
 
       expect(prisma.company.findUnique).toHaveBeenCalledWith({
-        where: { id: mockCompanyId },
+        where: { id: mockCompanyId, createdBy: "user-id" },
       });
 
       expect(result).toEqual(mockCompany);
@@ -412,7 +412,7 @@ describe("Company Actions", () => {
       });
 
       expect(prisma.company.findUnique).toHaveBeenCalledWith({
-        where: { id: mockCompanyId },
+        where: { id: mockCompanyId, createdBy: "user-id" },
       });
     });
   });

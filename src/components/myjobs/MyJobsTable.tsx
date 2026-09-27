@@ -66,6 +66,10 @@ function MyJobsTable({
     setJobIdToDelete(jobId);
   };
 
+  const uniqueJobs = Array.from(
+    new Map(jobs.map((job: JobResponse) => [job.id, job])).values()
+  );
+
   return (
     <>
       <Table>
@@ -86,7 +90,7 @@ function MyJobsTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs.map((job: JobResponse) => {
+          {uniqueJobs.map((job: JobResponse) => {
             return (
               <TableRow key={job.id}>
                 <TableCell className="hidden sm:table-cell">
@@ -103,9 +107,11 @@ function MyJobsTable({
                 </TableCell>
                 <TableCell
                   className="font-medium cursor-pointer"
-                  // onClick={() => viewJobDetails(job?.id)}
                 >
-                  <Link href={`/dashboard/myjobs/${job?.id}`}>
+                  <Link
+                    className="cursor-pointer"
+                    href={`/dashboard/myjobs/${job?.id}`}
+                  >
                     {job.JobTitle?.label}
                   </Link>
                 </TableCell>
@@ -123,7 +129,9 @@ function MyJobsTable({
                       className={cn(
                         "w-[70px] justify-center",
                         job.Status?.value === "applied" && "bg-cyan-500",
-                        job.Status?.value === "interview" && "bg-green-500"
+                        job.Status?.value === "interview" && "bg-green-500",
+                        job.Status?.value === "rejected" && "bg-blue-500",
+                        job.Status?.value === "offer" && "bg-purple-500"
                       )}
                     >
                       {job.Status?.label}

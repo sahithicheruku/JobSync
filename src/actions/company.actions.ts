@@ -155,6 +155,7 @@ export const updateCompany = async (
     const res = await prisma.company.update({
       where: {
         id,
+        createdBy: user.id,
       },
       data: {
         value,
@@ -186,6 +187,7 @@ export const getCompanyById = async (
     const company = await prisma.company.findUnique({
       where: {
         id: companyId,
+        createdBy: user.id,
       },
     });
     return company;

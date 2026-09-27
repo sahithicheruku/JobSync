@@ -21,20 +21,21 @@ export default function ActivityCalendar({
       <CardHeader>
         <CardTitle>Activity Calendar (Jobs Applied)</CardTitle>
       </CardHeader>
-      <CardContent className="h-[200px]">
+      <CardContent className="h-[200px] w-full min-w-0">
         <ResponsiveCalendar
           data={data}
-          from={`${year}-04-02`}
-          to={`${year}-04-02`}
+          from={`${year}-01-01`}
+          to={`${year}-12-31`}
           emptyColor={resolvedTheme === "light" ? "#eeeeee" : "#30363d"}
           colors={["#90e0ef", "#48cae4", "#00b4d8", "#0096c7", "#0077b6"]}
-          minValue={2}
+          minValue={1}
           margin={{ top: 20, right: 0, bottom: 20, left: 0 }}
           yearSpacing={40}
           monthBorderColor={borderColor}
           dayBorderWidth={2}
           dayBorderColor={borderColor}
           theme={{
+            background: borderColor,
             text: {
               fill: "#9ca3af",
             },

@@ -17,29 +17,40 @@ export const getJobsAppliedForPeriod = async (
     const startDate1 = subDays(new Date(), daysAgo);
     const startDate2 = subDays(new Date(), daysAgo * 2);
     const endDate = new Date();
-    const query = (date: Date): Prisma.JobCountArgs => ({
+    const query = (gte: Date, lt: Date): Prisma.JobCountArgs => ({
       where: {
         userId: user.id,
-        applied: true,
+        Status: { value: { in: ["applied", "interview", "offer"] } },
         appliedDate: {
-          gte: date,
-          lt: endDate,
+          gte,
+          lt,
         },
       },
     });
 
     const [count, count2] = await prisma.$transaction([
-      prisma.job.count(query(startDate1)),
-      prisma.job.count(query(startDate2)),
+      prisma.job.count(query(startDate1, endDate)),
+      prisma.job.count(query(startDate2, startDate1)),
     ]);
-    const difference = Math.abs(count2 - count);
-    const trend = calculatePercentageDifference(difference, count);
+    const trend = calculatePercentageDifference(count2, count);
     return { count, trend };
   } catch (error) {
     const msg = "Failed to calculate job count";
     console.error(msg, error);
     throw new Error(msg);
   }
+};
+
+export const getJobsAppliedTotal = async (): Promise<number> => {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  return prisma.job.count({
+    where: {
+      userId: user.id,
+      Status: { value: { in: ["applied", "interview", "offer"] } },
+      appliedDate: { not: null },
+    },
+  });
 };
 
 export const getRecentJobs = async (): Promise<any | undefined> => {
@@ -52,7 +63,8 @@ export const getRecentJobs = async (): Promise<any | undefined> => {
     const list = await prisma.job.findMany({
       where: {
         userId: user.id,
-        applied: true,
+        Status: { value: { in: ["applied", "interview", "offer"] } },
+        appliedDate: { not: null },
       },
       include: {
         JobSource: true,
@@ -105,7 +117,8 @@ export const getActivityDataForPeriod = async (): Promise<any | undefined> => {
       },
     });
     const groupedData = activities.reduce((acc: any, activity: any) => {
-      const day = format(new Date(activity.endTime), "PP");
+      if (!activity.endTime) return acc;
+      const day = format(new Date(activity.endTime), "yyyy-MM-dd");
       const activityTypeLabel = activity.activityType?.label || "Unknown";
 
       if (!acc[day]) {
@@ -119,9 +132,9 @@ export const getActivityDataForPeriod = async (): Promise<any | undefined> => {
 
       return acc;
     }, {});
-    const last7Days = getLast7Days();
+    const last7Days = getLast7Days("yyyy-MM-dd");
     const result = last7Days.map((date) => ({
-      day: date.split(",")[0],
+      day: format(new Date(date), "EEE"),
       ...groupedData[date],
     }));
 
@@ -141,36 +154,28 @@ export const getJobsActivityForPeriod = async (): Promise<any | undefined> => {
       throw new Error("Not authenticated");
     }
     const today = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 30);
-    const jobData = await prisma.job.groupBy({
-      by: "appliedDate",
-      _count: {
-        _all: true,
-      },
+    const sevenDaysAgo = subDays(today, 6);
+    const jobs = await prisma.job.findMany({
       where: {
         userId: user.id,
-        applied: true,
+        Status: { value: { in: ["applied", "interview", "offer"] } },
         appliedDate: {
           gte: sevenDaysAgo,
           lte: today,
         },
       },
-      orderBy: {
-        appliedDate: "asc",
-      },
+      select: { appliedDate: true },
     });
-    // Reduce to a format that groups by unique date (YYYY-MM-DD)
-    const groupedPosts = jobData.reduce((acc: any, post: any) => {
-      const date = format(new Date(post.appliedDate), "PP");
-      acc[date] = (acc[date] || 0) + post._count._all;
+    const groupedPosts = jobs.reduce((acc: Record<string, number>, job) => {
+      const date = format(new Date(job.appliedDate!), "yyyy-MM-dd");
+      acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {});
     // Get the last 7 days
-    const last7Days = getLast7Days();
+    const last7Days = getLast7Days("yyyy-MM-dd");
     // Map to ensure all dates are represented with a count of 0 if necessary
     const result = last7Days.map((date) => ({
-      day: date.split(",")[0],
+      day: format(new Date(date), "EEE"),
       value: groupedPosts[date] || 0,
     }));
 
@@ -192,22 +197,16 @@ export const getActivityCalendarData = async (): Promise<any | undefined> => {
     const today = new Date();
     const daysAgo = new Date();
     daysAgo.setDate(today.getDate() - 356);
-    const jobData = await prisma.job.groupBy({
-      by: "appliedDate",
-      _count: {
-        _all: true,
-      },
+    const jobs = await prisma.job.findMany({
       where: {
         userId: user.id,
-        applied: true,
+        Status: { value: { in: ["applied", "interview", "offer"] } },
         appliedDate: {
           gte: daysAgo, // A year of data
           lte: today,
         },
       },
-      orderBy: {
-        appliedDate: "asc",
-      },
+      select: { appliedDate: true },
     });
 
     type InputObject = {
@@ -220,9 +219,9 @@ export const getActivityCalendarData = async (): Promise<any | undefined> => {
     };
 
     // Reduce to a format that groups by unique date (YYYY-MM-DD)
-    const groupedJobs = jobData.reduce((acc: any, job: any) => {
-      const date = format(new Date(job.appliedDate), "yyyy-MM-dd");
-      acc[date] = (acc[date] || 0) + job._count._all;
+    const groupedJobs = jobs.reduce((acc: Record<string, number>, job) => {
+      const date = format(new Date(job.appliedDate!), "yyyy-MM-dd");
+      acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {});
 

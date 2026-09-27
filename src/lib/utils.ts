@@ -37,14 +37,9 @@ export function formatUrl(url: string) {
 }
 
 export function handleError(error: unknown, msg = "Server Error.") {
-  console.error(error, msg);
-  if (error instanceof Error) {
-    if (error.message === "fetch failed") {
-      error.message =
-        "Fetch failed, please make sure selected AI service is running.";
-    }
-    return { success: false, message: error.message || msg };
-  }
+  console.error(JSON.stringify({ event: "action_failed", context: msg, errorType: error instanceof Error ? error.name : "Unknown" }));
+  if (error instanceof Error && !error.name.startsWith("Prisma")) return { success: false, message: error.message || msg };
+  return { success: false, message: msg };
 }
 
 export function getTimestampedFileName(originalName: string): string {

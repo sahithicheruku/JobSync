@@ -75,7 +75,7 @@ export function AddJob({
     defaultValues: {
       type: Object.keys(JOB_TYPES)[0],
       dueDate: addDays(new Date(), 3),
-      status: jobStatuses[0].id,
+      status: jobStatuses[0]?.id ?? "",
       salaryRange: "1",
     },
   });
@@ -163,12 +163,13 @@ export function AddJob({
 
   const jobAppliedChange = (applied: boolean) => {
     if (applied) {
-      form.getValues("status") === jobStatuses[0].id &&
+      form.getValues("status") === jobStatuses[0]?.id &&
+        jobStatuses[1] &&
         setValue("status", jobStatuses[1].id);
       setValue("dateApplied", new Date());
     } else {
       resetField("dateApplied");
-      setValue("status", jobStatuses[0].id);
+      if (jobStatuses[0]) setValue("status", jobStatuses[0].id);
     }
   };
 

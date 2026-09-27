@@ -15,9 +15,9 @@ test("Signin page has title", async ({ page }) => {
 test("Signin and out from app", async ({ page, baseURL }) => {
   await page.goto("/");
   await page.getByPlaceholder("id@example.com").click();
-  await page.getByPlaceholder("id@example.com").fill("admin@example.com");
+  await page.getByPlaceholder("id@example.com").fill(process.env.E2E_EMAIL!);
   await page.getByLabel("Password").click();
-  await page.getByLabel("Password").fill("password123");
+  await page.getByLabel("Password").fill(process.env.E2E_PASSWORD!);
   await page.getByRole("button", { name: "Login" }).click();
 
   await expect(page).toHaveURL(baseURL + "/dashboard");

@@ -1,229 +1,59 @@
-# JobSync - Intelligent Job Search Management Platform
+# JobSync — AI Career Intelligence Platform
 
-## 🚀 Live Demo
+JobSync connects your application tracker, resumes, job requirements, and learning plan. Built on the existing Next.js application: dashboards, jobs, activities, resume builder/PDF uploads, course recommendations, administration, and OpenAI/Ollama settings remain available.
 
-**Try it now:** [http://35.200.153.53:3000/](http://35.200.153.53:3000/)
+## Career Intelligence
 
-**Demo Credentials:**
-- **Email:** admin@example.com
-- **Password:** password123
+Open **Career Intelligence** in the dashboard navigation.
 
----
+- **Explainable job fit:** skills, experience, education, and semantic similarity; cited job/resume evidence; missing skills; transparent weighted score.
+- **Resume analysis:** ATS text-readiness checks, keyword gaps, weak bullets, and suggestions for a selected job.
+- **Version comparison:** saved analysis snapshots retain content hashes, model, and rubric. Compare two resume versions under the same job context.
+- **Insights:** recurring missing skills, best-fit saved roles, recorded application/interview conversion, and learning priorities.
+- **Career assistant:** resume editing, interview preparation, learning, and application strategy grounded in the selected resume, job, and measured insights.
 
-JobSync is a web app companion for managing your job search journey. This free and open-source project is designed to help job seekers efficiently track and organize their job applications with AI-powered resume analysis and personalized course recommendations. Say goodbye to the chaos of scattered information and hello to a streamlined, intuitive, and powerful job search experience.
+Scores are guidance, not hiring probabilities. ATS readiness is a five-check text heuristic, not a commercial ATS measurement. No accuracy or outcome benchmark is claimed. See [scoring methodology](docs/SCORING.md).
 
-Job searching can be overwhelming, with numerous applications to track and deadlines to meet. JobSeeker Assistant is here to simplify this process, allowing you to focus on big picture and keep track of your job search related activities. JobSync app platform empowers you with the tools you need to stay organized, informed, and proactive throughout your job search.
+## Stack
 
-### Dashboard
+Next.js 15 / React 19 / TypeScript, Prisma 6 with PostgreSQL, Auth.js credentials, Tailwind/shadcn UI. Python FastAPI provides skill extraction, PDF text extraction, course recommendations, and Sentence Transformer similarity. OpenAI uses the Responses API with strict structured output and `store: false`; Ollama remains supported.
 
-![App Snapshot](./screenshots/jobsync-dashboard-screenshot.png?raw=true "App Snapshot Image")
+## Run with Docker
 
-### Jobs Applied list
+1. Copy `.env.example` to `.env`.
+2. Set `POSTGRES_PASSWORD` (use URL-safe characters), a matching `DATABASE_URL`, `AUTH_SECRET` (`openssl rand -base64 33`), and your own `USER_EMAIL` / `USER_PASSWORD` (at least 12 characters). There are no default credentials.
+3. Set `OPENAI_API_KEY` to use OpenAI. `OPENAI_MODEL` defaults to `gpt-5-mini` and can be configured by the operator. Alternatively select Ollama in Settings and install `llama3.1` on the configured Ollama server.
+4. Run `docker compose up --build -d` and visit `http://localhost:3000`.
 
-![App Snapshot](./screenshots/jobsync-myjobs.png?raw=true "My Jobs Page Snapshot Image")
+PostgreSQL data uses a named volume; resume files remain under `jobsyncdb/data`. The ML service is internal to Compose. Database startup is health-gated. Migrations and idempotent reference/account seeding run before the application starts. For an existing database, **import before starting/seeding the app**: [SQLite migration and rollback](docs/POSTGRESQL.md).
 
-### AI Resume review
+The initial ML build downloads dependencies and model assets. Its first startup may take time. Missing ML similarity is explicitly shown as unavailable; it is not replaced by an invented score.
 
-![JobSync AI Demo](./screenshots/jobsync-ai.gif)
+## Local development
 
-### AI Job match
-
-![JobSync AI Demo](./screenshots/jobsync-ai-jobmatch.gif)
-
-## ✨ Key Features
-
-### 📊 Job Application Tracking
-- **Application Tracker:** Keep a detailed record of all your job applications, including company details, job titles, application dates, and current status.
-- **Activity Monitoring Dashboard:** Visualize your job search progress with an interactive dashboard that provides insights into your application activities, success rates, and upcoming tasks.
-- **GitHub-style Activity Calendar:** Track your daily application patterns with a visual heatmap.
-
-### 🤖 AI-Powered Analysis
-- **AI Resume Review:** Get intelligent feedback on your resume using OpenAI GPT-3.5 with detailed analysis and improvement suggestions.
-- **Job-Resume Matching:** Receive AI-powered match scores (0-100) comparing your resume against job descriptions with gap analysis.
-- **ATS Friendliness Score:** Understand how well your resume will perform in Applicant Tracking Systems.
-
-### 🎓 Smart Course Recommendations
-- **ML-Powered Skill Extraction:** Automatically extract skills from resumes and job descriptions using spaCy NLP.
-- **Personalized Course Suggestions:** Get relevant course recommendations from 585+ Coursera courses based on your skill gaps.
-- **Semantic Matching:** Uses Sentence Transformers (all-MiniLM-L6-v2) for intelligent skill comparison with 90%+ accuracy.
-
-### 📝 Resume Management
-- **Resume Builder:** Create and manage multiple versions of your resume.
-- **File Upload Support:** Upload existing resumes in PDF format for AI analysis.
-- **Resume-Job Analysis:** Identify missing skills and strengths for each job application.
-
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **Next.js 15** with React 19 and App Router
-- **Tailwind CSS** for styling
-- **shadcn/ui** component library
-- **Server-Side Rendering (SSR)** for optimal performance
-
-### Backend
-- **Node.js** with Next.js API Routes
-- **NextAuth.js** for authentication
-- **Prisma ORM** with SQLite database
-- **RESTful API** architecture
-
-### ML/AI Services
-- **Python FastAPI** microservice (Port 8000)
-- **spaCy** (en_core_web_md) for NLP and skill extraction
-- **Sentence Transformers** (all-MiniLM-L6-v2) for semantic similarity
-- **OpenAI GPT-3.5** for resume review and job matching
-- **LangChain** for AI orchestration
-- **RapidFuzz** for fuzzy string matching
-
-### Deployment
-- **Docker** & **Docker Compose** for containerization
-- **Google Cloud Platform** (GCP Compute Engine)
-- **Microservices Architecture** with 6 layers
-- **Cloud-native design** for scalability
-
-## 🆓 Free to Use and Self-Hosted
-JobSync is completely free to use and open source. It provides a powerful job search management tool at no cost and ensures that everyone has access to the resources they need. Additionally, JobSync is designed to be self-hosted, giving you full control over your data. By using Docker, you can easily set up and run JobSync on your own server, ensuring a secure and personalized experience.
-
-
-## Installation
-
-### Using Docker
-
-#### Step 1 - Clone repo
-* **Alternatively you can also download the source code using download link**
+Use Node 22+, PostgreSQL 17, and Python 3.11 for the ML service.
 
 ```sh
-git clone https://github.com/sahithicheruku/JobSync.git
-cd JobSync
+npm ci
+npm run db:generate
+npm run db:migrate
+npm run seed
+npm run dev
 ```
 
-#### Step 2 - Change environment variables
-* ** You must create a .env file before proceeding. Refer to .env.example and create or change to .env with your environment variables**
-  
-#### 2.1 Generate auth secret (Optional) 
+Configure `.env` first. Node CLI seeding/import scripts need exported environment variables; use `node --env-file=.env prisma/seed.js` when running locally. Prisma and Next load `.env` themselves. Start the Python service using [its README](ml-service/README.md). Run PostgreSQL alone with `docker compose up -d db` if desired.
 
-These methods will generate a random string that you can use as your AUTH_SECRET. Make sure to set this in your environment variables:
-
-For example, add it to your .env local file:
+## Verification
 
 ```sh
-AUTH_SECRET="your_generated_secret"
+npm run typecheck
+npm run lint
+npm run test:ci
+npm run build
 ```
 
-##### For npm
+Unit/route tests mock external providers and test arithmetic, unavailable-data handling, evidence validation, ownership, and error boundaries. Live AI quality is not established by mocked tests. Browser tests use explicit `E2E_EMAIL` / `E2E_PASSWORD` in a test environment. See [deployment](docs/DEPLOYMENT.md) and [implementation notes](docs/IMPLEMENTATION.md).
 
-```sh
-    npm exec auth secret
-```
-OR
-```sh
-    npx auth secret
-```
+## Privacy and operations
 
-##### Using the openssl command available on Linux and Mac OS X:
-
-```sh
-    openssl rand -base64 33
-```
-
-#### 2.2 Change username and password (Optional) 
-
-You can use default username (admin@example) and password (password123) or change it in you .env file
-
-#### Step 3 - Build docker image and run container
-* **Please make sure you have <a href="https://www.docker.com">docker</a> installed and running**
-* Please make sure you are in you project directory in your terminal
-
-```sh
-docker compose up
-```
-
-#### Step 4 - Access the app
-* **Open [http://localhost:3000](http://localhost:3000) with your browser to access the app.**
-* If you encounter port conflicts, please change it in the docker file
-
-## 🙏 Credits & Technologies
-
-### Frontend & UI
-- [React](https://github.com/facebook/react) - UI library
-- [Next.js](https://github.com/vercel/next.js) - React framework
-- [shadcn/ui](https://github.com/shadcn-ui/ui) - UI components
-- [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) - CSS framework
-- [Tiptap](https://github.com/ueberdosis/tiptap) - Rich text editor
-- [Nivo](https://github.com/plouc/nivo) - Data visualization
-
-### Backend & Database
-- [Prisma](https://github.com/prisma/prisma) - ORM
-- [SQLite](https://github.com/sqlite/sqlite) - Database
-- [NextAuth.js](https://github.com/nextauthjs/next-auth) - Authentication
-
-### AI & ML
-- [OpenAI](https://openai.com) - GPT-3.5 API
-- [LangChain](https://github.com/langchain-ai/langchain) - AI framework
-- [spaCy](https://github.com/explosion/spaCy) - NLP library
-- [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) - Embeddings
-- [Ollama](https://github.com/ollama/ollama) - Local LLM runtime
-- [FastAPI](https://github.com/tiangolo/fastapi) - ML service framework
-- [RapidFuzz](https://github.com/maxbachmann/RapidFuzz) - Fuzzy matching
-
-### Deployment & DevOps
-- [Docker](https://www.docker.com/) - Containerization
-- [Google Cloud Platform](https://cloud.google.com/) - Cloud hosting
-
-## 🤖 AI Integration
-
-JobSync supports two AI providers for resume analysis and job matching:
-
-### OpenAI (Recommended)
-
-**GPT-3.5-turbo** is the default and recommended provider for production use.
-
-**Setup:**
-1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Add it to your `.env` file:
-```env
-OPENAI_API_KEY=sk-your-api-key-here
-```
-3. Select "OpenAI" as the provider in Settings page
-4. Choose "gpt-3.5-turbo" as the model
-
-**Features:**
-- ✅ High-quality resume reviews with detailed feedback
-- ✅ Accurate job-resume matching with scoring (0-100)
-- ✅ ATS friendliness analysis
-- ✅ Skill gap identification
-- ✅ Professional improvement suggestions
-
-### Ollama (Local Alternative)
-
-For privacy-focused users who want to run AI locally without external API calls.
-
-**Setup:**
-1. Install [Ollama](https://ollama.com)
-2. Download the llama3.1 model:
-```sh
-ollama pull llama3.1
-```
-3. Ensure Ollama is running (default: `http://localhost:11434`)
-4. Select "Ollama" as provider in Settings
-5. Choose "llama3.1" as the model
-
-**Note:** The response quality depends on input content. For optimal results:
-- Keep input under 3000 tokens
-- Avoid special characters
-- Remove unnecessary details from job descriptions
-- The 8B variant is recommended for most use cases
-
-### ML Service (Skill Extraction & Course Recommendations)
-
-The Python ML service runs independently and provides:
-- **Skill Extraction:** Identifies 150+ technical skills using spaCy NLP
-- **Course Recommendations:** Matches skills to 585 Coursera courses
-- **Semantic Analysis:** Uses transformer models for intelligent matching
-
-This service runs on port 8000 and is automatically started with Docker Compose.
-
-### Note
-
-- If you are updating from an old version and already logged in, please try logging out and login again.
-
+Resume/job content goes to the chosen AI provider only when analysis or assistant requests are made. Saved results contain personal information and are account-scoped. Model output is validated but may still be wrong; evidence citations help users inspect it. Logs avoid prompts, resume bodies, provider responses, and credentials. Back up PostgreSQL and uploaded files together. Use HTTPS and an appropriately configured reverse proxy for public deployment.

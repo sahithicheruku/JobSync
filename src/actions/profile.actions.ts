@@ -82,6 +82,7 @@ export const getResumeById = async (
     const resume = prisma.resume.findUnique({
       where: {
         id: resumeId,
+        profile: { userId: user.id },
       },
       include: {
         ContactInfo: true,
@@ -116,6 +117,7 @@ export const addContactInfo = async (
   data: z.infer<typeof AddContactInfoFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddContactInfoFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
@@ -125,6 +127,7 @@ export const addContactInfo = async (
     const res = await prisma.resume.update({
       where: {
         id: data.resumeId,
+        profile: { userId: user.id },
       },
       data: {
         ContactInfo: {
@@ -154,6 +157,7 @@ export const updateContactInfo = async (
   data: z.infer<typeof AddContactInfoFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddContactInfoFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
@@ -163,6 +167,7 @@ export const updateContactInfo = async (
     const res = await prisma.contactInfo.update({
       where: {
         id: data.id,
+        resume: { profile: { userId: user.id } },
       },
       data: {
         firstName: data.firstName,
@@ -181,125 +186,6 @@ export const updateContactInfo = async (
   }
 };
 
-export const createResumeProfile = async (
-  title: string,
-  fileName: string,
-  filePath?: string
-): Promise<any | undefined> => {
-  try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    //check if title exists
-    const value = title.trim().toLowerCase();
-
-    const titleExists = await prisma.resume.findFirst({
-      where: {
-        title: value,
-      },
-    });
-
-    if (titleExists) {
-      throw new Error("Title already exists!");
-    }
-
-    const profile = await prisma.profile.findFirst({
-      where: {
-        userId: user.id,
-      },
-    });
-
-    const res =
-      profile && profile.id
-        ? await prisma.resume.create({
-            data: {
-              profileId: profile!.id,
-              title,
-              FileId: fileName
-                ? await createFileEntry(fileName, filePath)
-                : null,
-            },
-          })
-        : await prisma.profile.create({
-            data: {
-              userId: user.id,
-              resumes: {
-                create: [
-                  {
-                    title,
-                    FileId: fileName
-                      ? await createFileEntry(fileName, filePath)
-                      : null,
-                  },
-                ],
-              },
-            },
-          });
-    // revalidatePath("/dashboard/myjobs", "page");
-    return { success: true, data: res };
-  } catch (error) {
-    const msg = "Failed to create resume.";
-    return handleError(error, msg);
-  }
-};
-
-const createFileEntry = async (
-  fileName: string | undefined,
-  filePath: string | undefined
-) => {
-  const newFileEntry = await prisma.file.create({
-    data: {
-      fileName: fileName!,
-      filePath: filePath!,
-      fileType: "resume",
-    },
-  });
-  return newFileEntry.id;
-};
-
-export const editResume = async (
-  id: string,
-  title: string,
-  fileId?: string,
-  fileName?: string,
-  filePath?: string
-): Promise<any | undefined> => {
-  try {
-    let resolvedFileId = fileId;
-
-    if (!fileId && fileName && filePath) {
-      resolvedFileId = await createFileEntry(fileName, filePath);
-    }
-
-    if (resolvedFileId) {
-      const isValidFileId = await prisma.file.findFirst({
-        where: { id: resolvedFileId },
-      });
-
-      if (!isValidFileId) {
-        throw new Error(
-          `The provided FileId "${resolvedFileId}" does not exist.`
-        );
-      }
-    }
-
-    const res = await prisma.resume.update({
-      where: { id },
-      data: {
-        title,
-        FileId: resolvedFileId || null,
-      },
-    });
-    return { success: true, data: res };
-  } catch (error) {
-    const msg = "Failed to update resume or file.";
-    return handleError(error, msg);
-  }
-};
-
 export const deleteResumeById = async (
   resumeId: string,
   fileId?: string
@@ -310,9 +196,9 @@ export const deleteResumeById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
-    if (fileId) {
-      await deleteFile(fileId);
-    }
+    const owned = await prisma.resume.findFirst({ where: { id: resumeId, profile: { userId: user.id } } });
+    if (!owned) throw new Error("Resume not found");
+    const attachedFile = owned.FileId ? await prisma.file.findUnique({ where: { id: owned.FileId } }) : null;
 
     await prisma.$transaction(async (prisma) => {
       await prisma.contactInfo.deleteMany({
@@ -345,6 +231,8 @@ export const deleteResumeById = async (
         },
       });
 
+      await prisma.licenseOrCertification.deleteMany({ where: { ResumeSection: { resumeId } } });
+      await prisma.otherSection.deleteMany({ where: { ResumeSection: { resumeId } } });
       await prisma.resumeSection.deleteMany({
         where: {
           resumeId: resumeId,
@@ -355,6 +243,11 @@ export const deleteResumeById = async (
         where: { id: resumeId },
       });
     });
+    if (attachedFile) {
+      await prisma.file.delete({ where: { id: attachedFile.id } });
+      const root = path.resolve(process.env.NODE_ENV === "production" ? "/data/files/resumes" : "data/files/resumes");
+      if (path.resolve(attachedFile.filePath).startsWith(root + path.sep)) await fs.promises.unlink(attachedFile.filePath).catch(() => undefined);
+    }
     return { success: true };
   } catch (error) {
     const msg = "Failed to delete resume.";
@@ -362,26 +255,22 @@ export const deleteResumeById = async (
   }
 };
 
-export const uploadFile = async (file: File, dir: string, path: string) => {
-  const bytes = await file.arrayBuffer();
-  const buffer = new Uint8Array(bytes);
-
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  await writeFile(path, buffer);
-};
-
 export const deleteFile = async (fileId: string) => {
   try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not authenticated");
     const file = await prisma.file.findFirst({
       where: {
         id: fileId,
+        Resume: { profile: { userId: user.id } },
       },
     });
 
-    const filePath = file?.filePath as string;
+    if (!file) throw new Error("File not found");
+    const filePath = file.filePath;
+    const root = path.resolve(process.env.NODE_ENV === "production" ? "/data/files/resumes" : "data/files/resumes");
+    if (!path.resolve(filePath).startsWith(root + path.sep)) throw new Error("Invalid file path");
+    await prisma.resume.updateMany({ where: { FileId: fileId, profile: { userId: user.id } }, data: { FileId: null } });
 
     const fullFilePath = path.join(filePath);
     if (!fs.existsSync(filePath)) {
@@ -406,11 +295,13 @@ export const addResumeSummary = async (
   data: z.infer<typeof AddSummarySectionFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddSummarySectionFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireOwnedResume(user.id, data.resumeId);
     const res = await prisma.resumeSection.create({
       data: {
         resumeId: data.resumeId!,
@@ -443,6 +334,7 @@ export const updateResumeSummary = async (
   data: z.infer<typeof AddSummarySectionFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddSummarySectionFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
@@ -451,6 +343,7 @@ export const updateResumeSummary = async (
     const res = await prisma.resumeSection.update({
       where: {
         id: data.id,
+        Resume: { profile: { userId: user.id } },
       },
       data: {
         sectionTitle: data.sectionTitle!,
@@ -460,6 +353,7 @@ export const updateResumeSummary = async (
     const summary = await prisma.resumeSection.update({
       where: {
         id: data.id,
+        Resume: { profile: { userId: user.id } },
       },
       data: {
         summary: {
@@ -481,16 +375,22 @@ export const addExperience = async (
   data: z.infer<typeof AddExperienceFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddExperienceFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
+    if (!await prisma.company.findFirst({ where: { id: data.company, createdBy: user.id } }) || !await prisma.jobTitle.findFirst({ where: { id: data.title, createdBy: user.id } })) throw new Error("Experience reference not found");
+
 
     if (!data.sectionId && !data.sectionTitle) {
       throw new Error("SectionTitle is required.");
     }
 
+    await requireOwnedResume(user.id, data.resumeId);
+    if (data.sectionId && !await prisma.resumeSection.findFirst({ where: { id: data.sectionId, resumeId: data.resumeId, Resume: { profile: { userId: user.id } } } })) throw new Error("Section not found");
     const section = !data.sectionId
       ? await prisma.resumeSection.create({
           data: {
@@ -530,11 +430,15 @@ export const updateExperience = async (
   data: z.infer<typeof AddExperienceFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddExperienceFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
+    if (!await prisma.company.findFirst({ where: { id: data.company, createdBy: user.id } }) || !await prisma.jobTitle.findFirst({ where: { id: data.title, createdBy: user.id } })) throw new Error("Experience reference not found");
+
     // const res = await prisma.resumeSection.update({
     //   where: {
     //     id: data.id,
@@ -547,6 +451,7 @@ export const updateExperience = async (
     const summary = await prisma.workExperience.update({
       where: {
         id: data.id,
+        ResumeSection: { Resume: { profile: { userId: user.id } } },
       },
       data: {
         jobTitleId: data.title,
@@ -569,11 +474,16 @@ export const addEducation = async (
   data: z.infer<typeof AddEducationFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddEducationFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
+
+    await requireOwnedResume(user.id, data.resumeId);
+    if (data.sectionId && !await prisma.resumeSection.findFirst({ where: { id: data.sectionId, resumeId: data.resumeId, Resume: { profile: { userId: user.id } } } })) throw new Error("Section not found");
     const section = !data.sectionId
       ? await prisma.resumeSection.create({
           data: {
@@ -614,11 +524,14 @@ export const updateEducation = async (
   data: z.infer<typeof AddEducationFormSchema>
 ): Promise<any | undefined> => {
   try {
+    AddEducationFormSchema.parse(data);
     const user = await getCurrentUser();
 
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
+
     // const res = await prisma.resumeSection.update({
     //   where: {
     //     id: data.id,
@@ -631,6 +544,7 @@ export const updateEducation = async (
     const summary = await prisma.education.update({
       where: {
         id: data.id,
+        ResumeSection: { Resume: { profile: { userId: user.id } } },
       },
       data: {
         institution: data.institution,
@@ -649,3 +563,7 @@ export const updateEducation = async (
     return handleError(error, msg);
   }
 };
+
+async function requireOwnedResume(userId: string, id?: string) {
+  if (!id || !await prisma.resume.findFirst({ where: { id, profile: { userId } } })) throw new Error("Resume not found");
+}

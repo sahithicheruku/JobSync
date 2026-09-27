@@ -10,7 +10,7 @@ import {
 
 const removeHtmlTags = (description: string | undefined): string => {
   if (!description) return "N/A";
-  return description.replace(/<[^>]+>/g, "");
+  return description.replace(/<\/(p|li|div)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
 };
 
 export const convertResumeToText = (resume: Resume): Promise<string> => {
@@ -32,6 +32,7 @@ export const convertResumeToText = (resume: Resume): Promise<string> => {
         .map(
           (experience) => `
          Company: ${experience.Company.label}
+         Dates: ${new Date(experience.startDate).toISOString().slice(0,10)} to ${experience.endDate ? new Date(experience.endDate).toISOString().slice(0,10) : "Present"}
          Job Title: ${experience.jobTitle.label}
          Location: ${experience.location.label}
          Description: ${removeHtmlTags(experience.description)}
@@ -53,6 +54,7 @@ export const convertResumeToText = (resume: Resume): Promise<string> => {
           .map(
             (education) => `
              Institution: ${education.institution}
+             Dates: ${new Date(education.startDate).toISOString().slice(0,10)} to ${education.endDate ? new Date(education.endDate).toISOString().slice(0,10) : "Present"}
              Degree: ${education.degree}
              Field of Study: ${education.fieldOfStudy}
              Location: ${education.location.label}
@@ -81,7 +83,7 @@ export const convertResumeToText = (resume: Resume): Promise<string> => {
             case SectionType.EDUCATION:
               return formatEducation(section.educations);
             default:
-              return "";
+              return `${section.sectionTitle}: ${(section.others || []).map(item => `${item.title}: ${removeHtmlTags(item.content)}`).join("\n")} ${(section.licenseOrCertifications || []).map(item => `${item.title}, ${item.organization}`).join("\n")}`;
           }
         })
         .join("\n");
@@ -103,13 +105,13 @@ export const convertJobToText = (job: JobResponse): Promise<string> => {
       description,
       JobTitle: { label: jobTitle },
       Company: { label: companyName },
-      Location: { label: location },
+      Location,
     } = job;
 
     const jobText = `
        Job Title: ${jobTitle}
        Company: ${companyName}
-       Location: ${location}
+       Location: ${Location?.label || "Not specified"}
        Description: ${removeHtmlTags(description)}
      `;
 

@@ -4,6 +4,7 @@ import {
   CalendarClock,
   UserRound,
   Sheet,
+  Sparkles,
 } from "lucide-react";
 
 export enum APP_CONSTANTS {
@@ -13,6 +14,7 @@ export enum APP_CONSTANTS {
 }
 
 export const SIDEBAR_LINKS = [
+  { icon: Sparkles, route: "/dashboard/career", label: "Career Intelligence" },
   {
     icon: LayoutDashboard,
     route: "/dashboard",

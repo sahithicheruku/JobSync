@@ -4,7 +4,7 @@ import { AiProvider, defaultModel } from "@/models/ai.model";
 import { getFromLocalStorage, saveToLocalStorage } from "@/utils/localstorage.utils";
 
 /**
- * This provider runs on app initialization to migrate any old Ollama settings to OpenAI.
+ * This provider runs on app initialization to normalize obsolete OpenAI model selections.
  * It executes before any components try to read AI settings from localStorage.
  */
 export function AiSettingsMigrationProvider({
@@ -16,9 +16,9 @@ export function AiSettingsMigrationProvider({
     // Run migration immediately on mount
     const savedSettings = getFromLocalStorage("aiSettings", defaultModel);
 
-    // Force migration from Ollama to OpenAI
-    if (savedSettings.provider === AiProvider.OLLAMA) {
-      console.log("[Migration] Detected Ollama settings, migrating to OpenAI");
+    // Preserve local provider choices
+    if (savedSettings.provider === AiProvider.OPENAI && savedSettings.model !== defaultModel.model) {
+      
       saveToLocalStorage("aiSettings", defaultModel);
     }
   }, []);
