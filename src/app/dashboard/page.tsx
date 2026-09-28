@@ -53,6 +53,12 @@ export default async function Dashboard() {
     );
   return (
     <>
+      <div className="col-span-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
+        <p className="text-muted-foreground">
+          Track your job search progress and recent activity.
+        </p>
+      </div>
       <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-2">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
           <JobsApplied count={jobsAppliedTotal} />

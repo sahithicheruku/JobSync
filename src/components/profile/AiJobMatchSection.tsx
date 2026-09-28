@@ -7,7 +7,7 @@ import { getFromLocalStorage } from "@/utils/localstorage.utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Button } from "../ui/button";
 import { AiJobMatchResponseContent } from "./AiJobMatchResponseContent";
-export function AiJobMatchSection({ aISectionOpen, triggerChange, jobId }: { aISectionOpen: boolean; triggerChange: (open: boolean) => void; jobId: string }) {
+export function AiJobMatchSection({ aISectionOpen, triggerChange, jobId, onResult }: { aISectionOpen: boolean; triggerChange: (open: boolean) => void; jobId: string; onResult?: () => void }) {
   const [resumes, setResumes] = useState<Resume[]>([]), [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(false), [error, setError] = useState(""), [content, setContent] = useState("");
   const request = useRef<AbortController | undefined>(undefined);
@@ -22,7 +22,7 @@ export function AiJobMatchSection({ aISectionOpen, triggerChange, jobId }: { aIS
     setLoading(true); setError(""); setContent("");
     try {
       const response = await fetch("/api/ai/resume/match", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({ resumeId: selected, jobId, selectedModel: getFromLocalStorage("aiSettings", defaultModel) }) });
-      const body = await response.json(); if (!response.ok) throw new Error(body.error || "Analysis failed"); setContent(JSON.stringify(body));
+      const body = await response.json(); if (!response.ok) throw new Error(body.error || "Analysis failed"); setContent(JSON.stringify(body)); onResult?.();
     } catch (e) { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Analysis failed"); }
     finally { if (request.current === controller) setLoading(false); }
   }

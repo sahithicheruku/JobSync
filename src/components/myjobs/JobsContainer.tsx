@@ -212,7 +212,12 @@ function JobsContainer({
     <>
       <Card x-chunk="dashboard-06-chunk-0">
         <CardHeader className="flex-row justify-between items-center">
-          <CardTitle>My Jobs</CardTitle>
+          <div>
+            <CardTitle>My Jobs</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Track and manage your applications.
+            </p>
+          </div>
           <div className="flex items-center">
             <div className="ml-auto flex items-center gap-2">
               <Select value={filterKey} onValueChange={onFilterChange}>

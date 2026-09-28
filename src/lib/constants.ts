@@ -14,12 +14,12 @@ export enum APP_CONSTANTS {
 }
 
 export const SIDEBAR_LINKS = [
-  { icon: Sparkles, route: "/dashboard/career", label: "Career Intelligence" },
   {
     icon: LayoutDashboard,
     route: "/dashboard",
     label: "Dashboard",
   },
+  { icon: Sparkles, route: "/dashboard/career", label: "Career Intelligence" },
   {
     icon: BriefcaseBusiness,
     route: "/dashboard/myjobs",

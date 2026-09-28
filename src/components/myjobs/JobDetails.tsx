@@ -3,6 +3,8 @@ import { format } from "date-fns";
 import { Badge } from "../ui/badge";
 import { cn, formatUrl } from "@/lib/utils";
 import { JobResponse } from "@/models/job.model";
+import { JobStatus } from "@/models/job.model";
+import { updateJobStatus } from "@/actions/job.actions";
 import { TipTapContentViewer } from "../TipTapContentViewer";
 import {
   Card,
@@ -19,12 +21,19 @@ import { useState } from "react";
 import { DownloadFileButton } from "../profile/DownloadFileButton";
 import { CourseRecommendations } from "../courses/CourseRecommendations";
 
-function JobDetails({ job }: { job: JobResponse }) {
-  const [aiSectionOpen, setAiSectionOpen] = useState(false);
+function JobDetails({ job, statuses }: { job: JobResponse; statuses: JobStatus[] }) {
+  const [aiSectionOpen, setAiSectionOpen] = useState(job?.Status?.value === "draft");
+  const [analyzed, setAnalyzed] = useState(false);
   const router = useRouter();
   const goBack = () => router.back();
   const getAiJobMatch = async () => {
     setAiSectionOpen(true);
+  };
+  const markApplied = async () => {
+    const applied = statuses.find(status => status.value === "applied");
+    if (!applied) return;
+    await updateJobStatus(job.id, applied);
+    router.refresh();
   };
   const getJobType = (code: string) => {
     switch (code) {
@@ -117,6 +126,12 @@ function JobDetails({ job }: { job: JobResponse }) {
           <CardFooter></CardFooter>
         </Card>
       )}
+      {job?.Status?.value === "draft" && analyzed && (
+        <div className="mt-4 flex gap-2">
+          <Button onClick={markApplied}>Mark as Applied</Button>
+          <Button variant="outline" onClick={goBack}>Keep Saved</Button>
+        </div>
+      )}
       {
         <div className="mt-6">
           <CourseRecommendations
@@ -131,6 +146,7 @@ function JobDetails({ job }: { job: JobResponse }) {
           jobId={job?.id}
           aISectionOpen={aiSectionOpen}
           triggerChange={setAiSectionOpen}
+          onResult={() => setAnalyzed(true)}
         />
       }
     </>
