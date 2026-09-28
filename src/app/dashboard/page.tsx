@@ -13,6 +13,7 @@ import NumberCard from "@/components/dashboard/NumberCard";
 import RecentJobsCard from "@/components/dashboard/RecentJobsCard";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
 import JobFunnel from "@/components/dashboard/JobFunnel";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Metadata } from "next";
@@ -105,6 +106,32 @@ export default async function Dashboard() {
       <div className="w-full col-span-3">
         <JobFunnel stages={jobFunnelData} />
       </div>
+      <div className="w-full col-span-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>How JobSync works</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 text-sm">
+            <div className="rounded border p-3">
+              <p className="font-medium">Frontend</p>
+              <p className="text-muted-foreground">Next.js, React, TypeScript, Tailwind</p>
+            </div>
+            <div className="rounded border p-3">
+              <p className="font-medium">Data layer</p>
+              <p className="text-muted-foreground">Prisma + PostgreSQL</p>
+            </div>
+            <div className="rounded border p-3">
+              <p className="font-medium">AI layer</p>
+              <p className="text-muted-foreground">OpenAI for career analysis and assistant workflows</p>
+            </div>
+            <div className="rounded border p-3">
+              <p className="font-medium">ML service</p>
+              <p className="text-muted-foreground">FastAPI, spaCy, SentenceTransformers, cosine similarity</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="w-full col-span-3">
         <Tabs defaultValue={activityCalendarDataKeys.at(-1)}>
           <TabsList>
