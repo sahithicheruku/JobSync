@@ -53,6 +53,26 @@ export const getJobsAppliedTotal = async (): Promise<number> => {
   });
 };
 
+export const getJobFunnelData = async () => {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const statuses = ["draft", "applied", "interview", "offer"] as const;
+  const counts = await prisma.$transaction(
+    statuses.map((value) =>
+      prisma.job.count({ where: { userId: user.id, Status: { value } } })
+    )
+  );
+
+  return statuses.map((status, index) => ({
+    status,
+    count: counts[index],
+    conversionRate: index === 0 ? 100 : counts[index - 1]
+      ? Math.round((counts[index] / counts[index - 1]) * 100)
+      : 0,
+  }));
+};
+
 export const getRecentJobs = async (): Promise<any | undefined> => {
   try {
     const user = await getCurrentUser();

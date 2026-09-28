@@ -4,6 +4,7 @@ import {
   getJobsActivityForPeriod,
   getJobsAppliedForPeriod,
   getJobsAppliedTotal,
+  getJobFunnelData,
   getRecentJobs,
 } from "@/actions/dashboard.actions";
 import ActivityCalendar from "@/components/dashboard/ActivityCalendar";
@@ -11,6 +12,7 @@ import JobsApplied from "@/components/dashboard/JobsAppliedCard";
 import NumberCard from "@/components/dashboard/NumberCard";
 import RecentJobsCard from "@/components/dashboard/RecentJobsCard";
 import WeeklyBarChart from "@/components/dashboard/WeeklyBarChart";
+import JobFunnel from "@/components/dashboard/JobFunnel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Metadata } from "next";
@@ -29,6 +31,7 @@ export default async function Dashboard() {
     weeklyData,
     activitiesData,
     activityCalendarData,
+    jobFunnelData,
   ] = await Promise.all([
     getJobsAppliedTotal(),
     getJobsAppliedForPeriod(7),
@@ -37,6 +40,7 @@ export default async function Dashboard() {
     getJobsActivityForPeriod(),
     getActivityDataForPeriod(),
     getActivityCalendarData(),
+    getJobFunnelData(),
   ]);
   const activityCalendarDataKeys = Object.keys(activityCalendarData);
   if (!activityCalendarDataKeys.length) {
@@ -97,6 +101,9 @@ export default async function Dashboard() {
       </div>
       <div>
         <RecentJobsCard jobs={recentJobs} />
+      </div>
+      <div className="w-full col-span-3">
+        <JobFunnel stages={jobFunnelData} />
       </div>
       <div className="w-full col-span-3">
         <Tabs defaultValue={activityCalendarDataKeys.at(-1)}>
