@@ -21,8 +21,8 @@ export async function generateJSON<T>(settings: AiModel | undefined, instruction
     });
   } else throw new Error("Invalid provider");
   if (!response.ok) {
-  const body = await response.text();
-  console.error("OPENAI_UPSTREAM_ERROR", response.status, body);
+  await response.text();
+  console.error("AI_UPSTREAM_ERROR", response.status);
   throw new Error(`AI_UPSTREAM_${response.status}`);
 }
   const data = await response.json();
