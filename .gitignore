@@ -48,3 +48,4 @@ data/files/resumes
 graphify-out/
 __pycache__/
 *.pyc
+ml-service/.venv/

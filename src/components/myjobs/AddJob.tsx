@@ -131,7 +131,7 @@ export function AddJob({
 
   function onSubmit(data: z.infer<typeof AddJobFormSchema>) {
     startTransition(async () => {
-      const { success, message } = editJob
+      const { job, success, message } = editJob
         ? await updateJob(data)
         : await addJob(data);
       reset();
@@ -143,7 +143,7 @@ export function AddJob({
           description: message,
         });
       }
-      redirect("/dashboard/myjobs");
+      redirect(editJob ? "/dashboard/myjobs" : `/dashboard/myjobs/${job.id}`);
     });
     toast({
       variant: "success",

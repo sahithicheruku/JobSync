@@ -3,6 +3,12 @@ import type { NextAuthConfig } from "next-auth";
 declare module "next-auth" {
   interface Session {
     accessToken?: any;
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
   }
 }
 
@@ -26,8 +32,12 @@ export const authConfig = {
       return true;
     },
     async session({ session, token }) {
-      // Send properties to the client, like an access_token from a provider.
       session.accessToken = token;
+
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+      }
+
       return session;
     },
   },

@@ -5,13 +5,15 @@ import { format } from "date-fns";
 import Link from "next/link";
 
 export default function RecentJobsCard({ jobs }: { jobs: JobResponse[] }) {
+  const recentJobs = jobs.slice(0, 3);
+
   return (
     <Card className="mb-2">
       <CardHeader>
-        <CardTitle>Recent Jobs Applied</CardTitle>
+        <CardTitle>Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-6">
-        {jobs.map((job) => (
+        {recentJobs.map((job) => (
           <div key={job.id} className="flex items-center gap-4">
             <Avatar className="hidden h-8 w-8 sm:flex">
               <AvatarImage

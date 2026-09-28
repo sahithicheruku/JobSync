@@ -20,7 +20,11 @@ export async function generateJSON<T>(settings: AiModel | undefined, instruction
       body: JSON.stringify({ model, stream: false, format: jsonSchema, messages: [{ role: "system", content: system }, { role: "user", content: JSON.stringify(input) }] }),
     });
   } else throw new Error("Invalid provider");
-  if (!response.ok) throw new Error(`AI_UPSTREAM_${response.status}`);
+  if (!response.ok) {
+  const body = await response.text();
+  console.error("OPENAI_UPSTREAM_ERROR", response.status, body);
+  throw new Error(`AI_UPSTREAM_${response.status}`);
+}
   const data = await response.json();
   if (provider === AiProvider.OPENAI && data.status !== "completed") throw new Error("AI_INCOMPLETE");
   const text = provider === AiProvider.OLLAMA ? data.message?.content : data.output?.flatMap((item: { content?: { type: string; text?: string }[] }) => item.content || []).filter((part: { type: string }) => part.type === "output_text").map((part: { text: string }) => part.text).join("");
