@@ -4,6 +4,23 @@
  */
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+const ML_DEMO_MODE = process.env.ML_DEMO_MODE === 'true';
+
+const demoSkills = ['Python', 'SQL', 'Docker', 'REST APIs', 'Git', 'Java', 'React', 'TypeScript', 'AWS', 'Kubernetes'];
+
+const demoCourses = (skills: string[], count: number): CourseRecommendation[] =>
+  skills.slice(0, count).map((skill, index) => ({
+    course_name: `[Demo] Sample ${skill} learning resource`,
+    provider: 'Sample provider',
+    skills_gained: skill,
+    rating: null,
+    level_duration: 'Demo data',
+    course_url: `#demo-course-${index + 1}`,
+    course_image: '',
+    provider_image: '',
+    similarity_score: 0.91 - index * 0.03,
+    match_percentage: 91 - index * 3,
+  }));
 
 export interface SkillExtractionResponse {
   success: boolean;
@@ -68,6 +85,12 @@ class MLServiceClient {
    * Extract skills from text (resume or job description)
    */
   async extractSkills(text: string): Promise<SkillExtractionResponse> {
+    if (ML_DEMO_MODE) {
+      const skills = ['Python', 'SQL', 'Docker', 'REST APIs', 'Git'].filter((skill) =>
+        text.toLowerCase().includes(skill.toLowerCase())
+      );
+      return { success: true, skills: skills.length ? skills : ['Python', 'SQL', 'Docker'], count: skills.length || 3 };
+    }
     const response = await fetch(`${this.baseURL}/api/extract-skills`, {
       method: 'POST',
       signal: AbortSignal.timeout(30000),
@@ -86,6 +109,7 @@ class MLServiceClient {
    * Extract skills from PDF file
    */
   async extractSkillsFromPDF(file: File | Blob): Promise<SkillExtractionResponse> {
+    if (ML_DEMO_MODE) return { success: true, skills: ['Python', 'SQL', 'Docker'], count: 3 };
     const formData = new FormData();
     formData.append('file', file);
 
@@ -109,6 +133,11 @@ class MLServiceClient {
     resumeSkills: string[],
     jobSkills: string[]
   ): Promise<SkillComparisonResponse> {
+    if (ML_DEMO_MODE) {
+      const matched_skills = resumeSkills.filter((skill) => jobSkills.some((required) => required.toLowerCase() === skill.toLowerCase()));
+      const missing_skills = jobSkills.filter((skill) => !matched_skills.some((matched) => matched.toLowerCase() === skill.toLowerCase()));
+      return { success: true, comparison: { matched_skills, missing_skills, extra_skills: resumeSkills.filter((skill) => !matched_skills.includes(skill)), match_percentage: jobSkills.length ? Math.round(matched_skills.length / jobSkills.length * 100) : 100, total_required: jobSkills.length, total_matched: matched_skills.length } };
+    }
     const response = await fetch(`${this.baseURL}/api/compare-skills`, {
       method: 'POST',
       signal: AbortSignal.timeout(30000),
@@ -133,6 +162,7 @@ class MLServiceClient {
     missingSkills: string[],
     topN: number = 10
   ): Promise<CourseRecommendationResponse> {
+    if (ML_DEMO_MODE) { const courses = demoCourses(missingSkills, topN); return { success: true, courses, count: courses.length }; }
     const response = await fetch(`${this.baseURL}/api/recommend-courses`, {
       method: 'POST',
       signal: AbortSignal.timeout(30000),
@@ -159,6 +189,15 @@ class MLServiceClient {
     resumeSkills: string[],
     topN: number = 10
   ): Promise<JobAnalysisResponse> {
+    if (ML_DEMO_MODE) {
+      const description = jobDescription.toLowerCase();
+      const required = demoSkills.filter((skill) => description.includes(skill.toLowerCase()));
+      const matched_skills = required.filter((skill) => resumeSkills.some((candidate) => candidate.toLowerCase() === skill.toLowerCase()));
+      const missing_skills = required.filter((skill) => !matched_skills.includes(skill));
+      const recommended_courses = demoCourses(missing_skills, topN);
+      const match_percentage = required.length ? Math.round(matched_skills.length / required.length * 100) : 100;
+      return { success: true, skill_analysis: { matched_skills, missing_skills, extra_skills: resumeSkills.filter((skill) => !required.includes(skill)), match_percentage, total_required: required.length, total_matched: matched_skills.length }, recommended_courses, missing_skills_count: missing_skills.length, match_percentage };
+    }
     const response = await fetch(`${this.baseURL}/api/analyze-job`, {
       method: 'POST',
       signal: AbortSignal.timeout(30000),
@@ -184,6 +223,7 @@ class MLServiceClient {
     query: string,
     topN: number = 10
   ): Promise<CourseRecommendationResponse> {
+    if (ML_DEMO_MODE) { const courses = demoCourses([query, 'Python', 'SQL'], topN); return { success: true, courses, count: courses.length }; }
     const response = await fetch(`${this.baseURL}/api/search-courses`, {
       method: 'POST',
       signal: AbortSignal.timeout(30000),
@@ -208,6 +248,7 @@ class MLServiceClient {
     skill: string,
     topN: number = 5
   ): Promise<CourseRecommendationResponse> {
+    if (ML_DEMO_MODE) { const courses = demoCourses([skill], topN); return { success: true, courses, count: courses.length }; }
     const response = await fetch(
       `${this.baseURL}/api/courses/by-skill/${encodeURIComponent(skill)}?top_n=${topN}`
     );
@@ -223,6 +264,7 @@ class MLServiceClient {
    * Health check
    */
   async healthCheck(): Promise<any> {
+    if (ML_DEMO_MODE) return { status: 'ok', mode: 'demo' };
     const response = await fetch(`${this.baseURL}/health`);
     return response.json();
   }
