@@ -214,52 +214,44 @@ export const getActivityCalendarData = async (): Promise<any | undefined> => {
     if (!user) {
       throw new Error("Not authenticated");
     }
-    const today = new Date();
-    const daysAgo = new Date();
-    daysAgo.setDate(today.getDate() - 356);
-    const jobs = await prisma.job.findMany({
+
+    const activities = await prisma.activity.findMany({
       where: {
         userId: user.id,
-        Status: { value: { in: ["applied", "interview", "offer"] } },
-        appliedDate: {
-          gte: daysAgo, // A year of data
-          lte: today,
+        activityType: {
+          value: "job-application",
+        },
+        startTime: {
+          gte: new Date("2026-01-01T00:00:00"),
+          lte: new Date("2026-12-31T23:59:59"),
         },
       },
-      select: { appliedDate: true },
+      select: {
+        startTime: true,
+      },
+      orderBy: {
+        startTime: "asc",
+      },
     });
 
-    type InputObject = {
-      [key: string]: number;
+    const grouped: Record<string, number> = {};
+
+    for (const activity of activities) {
+      const day = format(new Date(activity.startTime), "yyyy-MM-dd");
+      grouped[day] = (grouped[day] || 0) + 1;
+    }
+
+    const data2026 = Object.entries(grouped).map(([day, value]) => ({
+      day,
+      value,
+    }));
+
+    return {
+      "2026": data2026,
+      "2027": [],
     };
-
-    type OutputObject = {
-      day: string;
-      value: number;
-    };
-
-    // Reduce to a format that groups by unique date (YYYY-MM-DD)
-    const groupedJobs = jobs.reduce((acc: Record<string, number>, job) => {
-      const date = format(new Date(job.appliedDate!), "yyyy-MM-dd");
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {});
-
-    const groupedByYear = Object.entries(groupedJobs).reduce(
-      (acc: any, [date, value]) => {
-        const year = date.split("-")[0];
-        if (!acc[year]) {
-          acc[year] = [];
-        }
-        acc[year].push({ day: date, value });
-        return acc;
-      },
-      {}
-    );
-
-    return groupedByYear;
   } catch (error) {
-    const msg = "Failed to fetch jobs list. ";
+    const msg = "Failed to fetch activity calendar data. ";
     console.error(msg, error);
     throw new Error(msg);
   }

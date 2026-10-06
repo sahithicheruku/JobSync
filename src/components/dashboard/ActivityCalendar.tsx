@@ -24,8 +24,8 @@ export default function ActivityCalendar({
       <CardContent className="h-[200px] w-full min-w-0">
         <ResponsiveCalendar
           data={data}
-          from={`${year}-01-01`}
-          to={`${year}-12-31`}
+          from={`${year}-01-02`}
+          to={`${year}-12-30`}
           emptyColor={resolvedTheme === "light" ? "#eeeeee" : "#30363d"}
           colors={["#90e0ef", "#48cae4", "#00b4d8", "#0096c7", "#0077b6"]}
           minValue={1}

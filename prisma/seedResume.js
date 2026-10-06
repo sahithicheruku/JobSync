@@ -42,7 +42,12 @@ async function seedResume() {
     });
 
     if (existingResume) {
-      console.log("Resume already exists. Skipping...");
+      await prisma.resume.upsert({
+        where: { id: `${profile.id}-ai-ml-demo` },
+        update: { title: "AI / ML Engineer Resume" },
+        create: { id: `${profile.id}-ai-ml-demo`, profileId: profile.id, title: "AI / ML Engineer Resume" },
+      });
+      console.log("Resume already exists; ensured the second demo version exists.");
       return;
     }
 
@@ -265,6 +270,7 @@ async function seedResume() {
     console.log(`Resume ID: ${resume.id}`);
     console.log(`Resume Title: ${resume.title}`);
     console.log(`Total Sections: ${resume.ResumeSections.length}`);
+    await prisma.resume.create({ data: { id: `${profile.id}-ai-ml-demo`, profileId: profile.id, title: "AI / ML Engineer Resume" } });
   } catch (error) {
     console.error("❌ Error seeding resume:", error);
     throw error;

@@ -43,11 +43,11 @@ export default async function Dashboard() {
     getActivityCalendarData(),
     getJobFunnelData(),
   ]);
-  const activityCalendarDataKeys = Object.keys(activityCalendarData);
-  if (!activityCalendarDataKeys.length) {
-    activityCalendarData[format(new Date(), "yyyy")] = [];
-    activityCalendarDataKeys.push(format(new Date(), "yyyy"));
-  }
+  const activityCalendarDataKeys = ["2026", "2027"];
+
+  activityCalendarData["2026"] = activityCalendarData["2026"] ?? [];
+  activityCalendarData["2027"] = [];
+
   const activitiesDataKeys = (data: string[]) =>
     Array.from(
       new Set(
@@ -114,40 +114,47 @@ export default async function Dashboard() {
           <CardContent className="grid gap-3 md:grid-cols-2 text-sm">
             <div className="rounded border p-3">
               <p className="font-medium">Frontend</p>
-              <p className="text-muted-foreground">Next.js, React, TypeScript, Tailwind</p>
+              <p className="text-muted-foreground">
+                Next.js, React, TypeScript, Tailwind
+              </p>
             </div>
+
             <div className="rounded border p-3">
               <p className="font-medium">Data layer</p>
-              <p className="text-muted-foreground">Prisma + PostgreSQL</p>
+              <p className="text-muted-foreground">
+                Prisma + PostgreSQL
+              </p>
             </div>
+
             <div className="rounded border p-3">
               <p className="font-medium">AI layer</p>
-              <p className="text-muted-foreground">OpenAI for career analysis and assistant workflows</p>
+              <p className="text-muted-foreground">
+                OpenAI for career analysis and assistant workflows
+              </p>
             </div>
+
             <div className="rounded border p-3">
               <p className="font-medium">ML service</p>
-              <p className="text-muted-foreground">FastAPI, spaCy, SentenceTransformers, cosine similarity</p>
+              <p className="text-muted-foreground">
+                FastAPI, skills extraction, AI-powered similarity analysis
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="w-full col-span-3">
-        <Tabs defaultValue={activityCalendarDataKeys.at(-1)}>
-          <TabsList>
-            {activityCalendarDataKeys.map((year) => (
-              <TabsTrigger key={year} value={year}>
-                {year}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {activityCalendarDataKeys.map((year) => (
-            <TabsContent key={year} value={year}>
-              <ActivityCalendar year={year} data={activityCalendarData[year]} />
-            </TabsContent>
-          ))}
-        </Tabs>
+      <div className="w-full col-span-3 space-y-4">
+        <ActivityCalendar
+          year="2026"
+          data={activityCalendarData["2026"] ?? []}
+        />
+
+        <ActivityCalendar
+          year="2027"
+          data={[]}
+        />
       </div>
+
     </>
   );
 }

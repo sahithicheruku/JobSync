@@ -9,6 +9,7 @@
     "lint": "eslint src --ext .ts,.tsx",
     "seed": "node --env-file-if-exists=.env.local ./prisma/seed.js && node --env-file-if-exists=.env.local ./prisma/seedCourses.js",
     "seed:courses": "node --env-file-if-exists=.env.local ./prisma/seedCourses.js",
+    "seed:demo": "node --env-file-if-exists=.env.local ./prisma/seedResume.js && node --env-file-if-exists=.env.local ./prisma/seedJobs.js && node --env-file-if-exists=.env.local ./prisma/seedActivities.js && node --env-file-if-exists=.env.local ./prisma/seedCareerAnalyses.js",
     "test": "jest",
     "test:e2e": "npx playwright test",
     "test:watch": "jest --watch",
