@@ -46,7 +46,11 @@ export default function CareerWorkspace() {
   const [beforeId, setBeforeId] = useState(""); const [afterId, setAfterId] = useState("");
   const [comparison, setComparison] = useState<{ before: Analysis; after: Analysis; delta: number | null; sameResumeContent: boolean; explanation: string }>();
   const [question, setQuestion] = useState(""); const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [interviewPrep, setInterviewPrep] = useState("");
   const [analysisId, setAnalysisId] = useState("");
+  const [mockActive, setMockActive] = useState(false);
+  const [mockAnswer, setMockAnswer] = useState("");
+  const [mockMessages, setMockMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const refresh = async () => { const response = await fetch("/api/career"); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(body); };
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
   async function request(url: string, payload: unknown) {
@@ -70,6 +74,82 @@ export default function CareerWorkspace() {
     try { const reply = await request("/api/career", { action: "assistant", resumeId, jobId: jobId || undefined, analysisId: analysisId || undefined, selectedModel: getFromLocalStorage("aiSettings", defaultModel), messages: next.map(m => ({ ...m, content: m.content.slice(0,3000) })) }); setMessages([...next, { role: "assistant", content: `${reply.answer}\n\nEvidence:\n${reply.evidence.join("\n")}\n\nNext steps:\n${reply.nextSteps.join("\n")}` }]); setQuestion(""); }
     catch (e) { setError(e instanceof Error ? e.message : "Assistant unavailable"); } finally { setBusy(false); }
   }
+  async function startMockInterview() {
+    if (!resumeId || !jobId) return;
+
+    setBusy(true);
+    setError("");
+
+    const prompt = [{
+      role: "user" as const,
+      content: "Act as an interviewer for this job using my resume. Ask exactly one realistic interview question. Do not give the answer yet."
+    }];
+
+    try {
+      const reply = await request("/api/career", {
+        action: "assistant",
+        resumeId,
+        jobId,
+        selectedModel: getFromLocalStorage("aiSettings", defaultModel),
+        messages: prompt,
+      });
+
+      setMockActive(true);
+      setMockMessages([{
+        role: "assistant",
+        content: reply.answer
+      }]);
+      setMockAnswer("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mock interview unavailable");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitMockAnswer(event: React.FormEvent) {
+    event.preventDefault();
+    if (!mockAnswer.trim()) return;
+
+    setBusy(true);
+    setError("");
+
+    const conversation = [
+      ...mockMessages.slice(-6),
+      { role: "user" as const, content: mockAnswer }
+    ];
+
+    try {
+      const reply = await request("/api/career", {
+        action: "assistant",
+        resumeId,
+        jobId,
+        selectedModel: getFromLocalStorage("aiSettings", defaultModel),
+        messages: [
+          ...conversation,
+          {
+            role: "user",
+            content: "Evaluate my previous answer briefly, give 2-3 specific improvement points, then ask exactly one next interview question."
+          }
+        ]
+      });
+
+      setMockMessages([
+        ...conversation,
+        {
+          role: "assistant",
+          content: reply.answer
+        }
+      ]);
+
+      setMockAnswer("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Mock interview unavailable");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const selectClass = "w-full rounded-md border bg-background p-2 text-sm";
   const hasRealInsights = !!data && (data.history.length > 0 || data.insights.analyzedJobs > 0);
   return <section className="col-span-full mx-auto w-full max-w-6xl space-y-6 p-4 md:p-8">
@@ -189,10 +269,9 @@ export default function CareerWorkspace() {
                     content: "Create interview preparation for this job using my resume. Include likely technical topics, behavioral questions, skill gaps to prepare, and concise answer guidance grounded in my experience."
                   }]
                 });
-                setMessages([{
-                  role: "assistant",
-                  content: `${reply.answer}\n\nEvidence:\n${reply.evidence.join("\n")}\n\nNext steps:\n${reply.nextSteps.join("\n")}`
-                }]);
+                setInterviewPrep(
+                  `${reply.answer}\n\nEvidence:\n${reply.evidence.join("\n")}\n\nNext steps:\n${reply.nextSteps.join("\n")}`
+                );
               } catch (e) {
                 setError(e instanceof Error ? e.message : "Interview prep failed");
               } finally {
@@ -200,8 +279,15 @@ export default function CareerWorkspace() {
               }
             }}
           >
-            Generate Interview Prep
+            {busy ? "Generating..." : "Generate Interview Prep"}
           </Button>
+
+          {interviewPrep && (
+            <div className="rounded-md border bg-muted/30 p-4">
+              <h3 className="mb-2 font-semibold">Your Interview Preparation</h3>
+              <p className="whitespace-pre-wrap text-sm">{interviewPrep}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -270,15 +356,63 @@ export default function CareerWorkspace() {
 
       <Card>
   <CardHeader><CardTitle>Mock Interview</CardTitle></CardHeader>
-  <CardContent>
-    <Button
-      disabled={busy || !resumeId || !jobId}
-      onClick={() => setQuestion(
-        "Act as an interviewer for this job. Ask me one realistic interview question at a time based on the job and my resume."
-      )}
-    >
-      Start Mock Interview
-    </Button>
+  <CardContent className="space-y-4">
+    {!mockActive ? (
+      <Button
+        disabled={busy || !resumeId || !jobId}
+        onClick={startMockInterview}
+      >
+        {busy ? "Starting..." : "Start Mock Interview"}
+      </Button>
+    ) : (
+      <>
+        <div className="space-y-3" aria-live="polite">
+          {mockMessages.map((message, index) => (
+            <div key={index} className="rounded border p-3">
+              <p className="font-semibold">
+                {message.role === "assistant" ? "Interviewer" : "You"}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm">
+                {message.content}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={submitMockAnswer} className="space-y-3">
+          <label htmlFor="mock-answer" className="block text-sm font-medium">
+            Your answer
+          </label>
+
+          <textarea
+            id="mock-answer"
+            className={selectClass}
+            rows={4}
+            value={mockAnswer}
+            onChange={e => setMockAnswer(e.target.value)}
+            placeholder="Type your interview answer..."
+          />
+
+          <div className="flex gap-2">
+            <Button disabled={busy || !mockAnswer.trim()}>
+              {busy ? "Evaluating..." : "Submit Answer"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setMockActive(false);
+                setMockMessages([]);
+                setMockAnswer("");
+              }}
+            >
+              End Interview
+            </Button>
+          </div>
+        </form>
+      </>
+    )}
   </CardContent>
 </Card>
 

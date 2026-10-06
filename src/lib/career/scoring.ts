@@ -42,7 +42,7 @@ export function scoreMatch(extraction: Extraction, semantic: number | null) {
     overall: availableWeight ? Math.round(components.reduce((n, c) => n + (c.score ?? 0) * c.weight, 0) / availableWeight) : null,
     availableWeight,
     missingSkills: extraction.skills.filter(r => r.assessment === "missing").map(r => r.requirement),
-    explanation: "Rubric v1: skills 40%, experience 25%, education 10%, semantic similarity 25%. Met = 1, partial = 0.5, missing = 0. Unknown requirements are excluded. Unavailable components are excluded and remaining weights normalized. This is a guidance score, not a hiring probability. Evidence interpretation is AI-generated; review the cited text.",
+    explanation: "Rubric v1: skills 40%, experience 25%, education 10%, overall context 25%. Met = 1, partial = 0.5, missing = 0. Unknown requirements are excluded. Unavailable components are excluded and remaining weights normalized. This is a guidance score, not a hiring probability. Evidence interpretation is AI-generated; review the cited text.",
   };
 }
 export function atsChecks(text: string) {
