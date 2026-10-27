@@ -43,11 +43,30 @@ async function seedResume() {
     });
 
     if (existingResume) {
-      await prisma.resume.upsert({
+      const aiResume = await prisma.resume.upsert({
         where: { id: `${profile.id}-ai-ml-demo` },
         update: { title: "AI / ML Engineer Resume" },
         create: { id: `${profile.id}-ai-ml-demo`, profileId: profile.id, title: "AI / ML Engineer Resume" },
       });
+      const existingSections = await prisma.resumeSection.count({ where: { resumeId: aiResume.id } });
+      if (!existingSections) {
+        const company = await prisma.company.upsert({ where: { value: "northstar-analytics" }, update: {}, create: { label: "Northstar Analytics", value: "northstar-analytics", createdBy: user.id } });
+        const title = await prisma.jobTitle.upsert({ where: { value: "backend-engineer" }, update: {}, create: { label: "Backend Engineer", value: "backend-engineer", createdBy: user.id } });
+        const location = await prisma.location.findFirst({ where: { value: "remote", createdBy: user.id } }) || await prisma.location.create({ data: { label: "Remote", value: "remote", country: "Remote", createdBy: user.id } });
+        const summary = await prisma.summary.create({ data: { content: "Backend engineer building reliable Java and Spring Boot services, event-driven workflows with Kafka, and data platforms backed by PostgreSQL." } });
+        await prisma.resume.update({
+          where: { id: aiResume.id },
+          data: {
+            ContactInfo: { create: { firstName: "Jordan", lastName: "Lee", headline: "Backend Engineer", email: "jordan.lee@example.com", phone: "+1 312 555 0148", address: "Chicago, IL" } },
+            ResumeSections: { create: [
+              { sectionTitle: "Professional Summary", sectionType: "summary", summaryId: summary.id },
+              { sectionTitle: "Work Experience", sectionType: "experience", workExperiences: { create: [{ companyId: company.id, jobTitleId: title.id, locationId: location.id, startDate: new Date("2022-01-01"), description: "Built Java and Spring Boot APIs, Kafka event flows, and PostgreSQL data services with automated testing and production monitoring." }] } },
+              { sectionTitle: "Education", sectionType: "education", educations: { create: [{ institution: "University of Illinois Chicago", degree: "Bachelor of Science", fieldOfStudy: "Computer Science", locationId: location.id, startDate: new Date("2017-08-01"), endDate: new Date("2021-05-31"), description: "Computer Science" }] } },
+              { sectionTitle: "Skills", sectionType: "other", others: { create: [{ title: "Backend and Data", content: "Java, Spring Boot, Kafka, PostgreSQL, REST APIs, Docker, AWS, testing, observability" }] } },
+            ] },
+          },
+        });
+      }
       console.log("Resume already exists; ensured the second demo version exists.");
       return;
     }

@@ -56,9 +56,11 @@ export default function CareerWorkspace() {
     const body = await response.json();
     if (!response.ok) throw new Error(body.error);
     setData(body);
-    setResumeId(current => current || body.resumes[0]?.id || "");
-    setJobId(current => current || body.jobs[0]?.id || "");
-    setAnalysisId(current => current || body.history[0]?.id || "");
+    if (body.history.length > 0) {
+      setResumeId(current => current || body.resumes[0]?.id || "");
+      setJobId(current => current || body.jobs[0]?.id || "");
+      setAnalysisId(current => current || body.history[0]?.id || "");
+    }
     const matches = body.history.filter((item: Analysis) => item.kind === "match");
     const pair = matches.find((before: Analysis) => matches.some((after: Analysis) => compatibleWith(before, after)));
     if (pair) {
@@ -82,6 +84,13 @@ export default function CareerWorkspace() {
   const compatibleWith = (analysis: Analysis, other: Analysis) => analysis.id !== other.id && analysis.kind === other.kind && analysis.rubric === other.rubric && analysis.jobId === other.jobId;
   async function compare() {
     setBusy(true); setError(""); setComparison(undefined);
+    const before = data?.history.find(item => item.id === beforeId);
+    const after = data?.history.find(item => item.id === afterId);
+    if (!before || !after || !compatibleWith(before, after)) {
+      setError("Choose two analyses for the same job, analysis type, and rubric.");
+      setBusy(false);
+      return;
+    }
     try { setComparison(await request("/api/career", { action: "compare", beforeId, afterId })); }
     catch (e) { setError(e instanceof Error ? e.message : "Comparison failed"); } finally { setBusy(false); }
   }
@@ -264,7 +273,7 @@ export default function CareerWorkspace() {
         </CardContent>
       </Card>
 
-      <Card><CardHeader><CardTitle>Compare resume versions</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm">Analyze versions against the same job, then compare saved snapshots. Changing a resume preserves earlier results.</p><div className="grid gap-4 md:grid-cols-2">{[["Before",beforeId,setBeforeId],["After",afterId,setAfterId]].map(([label,value,setter], index) => { const selected = data.history.find(h => h.id === value); const options = index === 0 || !selected ? data.history : data.history.filter(h => compatibleWith(selected, h)); return <label key={label as string}>{label as string}<select className={selectClass} value={value as string} onChange={e => (setter as (v:string)=>void)(e.target.value)}><option value="">Choose compatible saved analysis</option>{options.map(h => <option value={h.id} key={h.id}>{h.resumeTitle} · {h.kind} · {h.jobTitle || "General"} · {new Date(h.createdAt).toLocaleString()}</option>)}</select></label>; })}</div><Button disabled={busy || !beforeId || !afterId} onClick={compare}>Compare snapshots</Button>{comparison && <><p>Score change: {comparison.delta === null ? "Not comparable" : `${comparison.delta > 0 ? "+" : ""}${comparison.delta} points`}{comparison.sameResumeContent ? " · Same resume content" : " · Different resume content"}</p><p className="text-sm text-muted-foreground">{comparison.explanation}</p><div className="grid gap-6 md:grid-cols-2">{[comparison.before,comparison.after].map((a,i) => <section key={a.id}><h3 className="font-semibold">{i === 0 ? "Before" : "After"}: {a.resumeTitle}</h3><p className="mb-3 text-xs">{a.model} · {a.rubric}</p><AnalysisResult value={a.result} /></section>)}</div></>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Compare resume versions</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm">Analyze versions against the same job, then compare saved snapshots. Changing a resume preserves earlier results.</p><div className="grid gap-4 md:grid-cols-2">{[["Before",beforeId,setBeforeId],["After",afterId,setAfterId]].map(([label,value,setter], index) => { const anchor = index === 1 ? data.history.find(h => h.id === beforeId) : undefined; const options = anchor ? data.history.filter(h => compatibleWith(anchor, h)) : data.history; return <label key={label as string}>{label as string}<select className={selectClass} value={value as string} onChange={e => { const next = e.target.value; (setter as (v:string)=>void)(next); if (index === 0 && afterId && next && !compatibleWith(data.history.find(h => h.id === next)!, data.history.find(h => h.id === afterId)!)) setAfterId(""); }}>{<option value="">Choose compatible saved analysis</option>}{options.map(h => <option value={h.id} key={h.id}>{h.resumeTitle} · {h.kind} · {h.jobTitle || "General"} · {new Date(h.createdAt).toLocaleString()}</option>)}</select></label>; })}</div><Button disabled={busy || !beforeId || !afterId} onClick={compare}>Compare snapshots</Button>{comparison && <><p>Score change: {comparison.delta === null ? "Not comparable" : `${comparison.delta > 0 ? "+" : ""}${comparison.delta} points`}{comparison.sameResumeContent ? " · Same resume content" : " · Different resume content"}</p><p className="text-sm text-muted-foreground">{comparison.explanation}</p><div className="grid gap-6 md:grid-cols-2">{[comparison.before,comparison.after].map((a,i) => <section key={a.id}><h3 className="font-semibold">{i === 0 ? "Before" : "After"}: {a.resumeTitle}</h3><p className="mb-3 text-xs">{a.model} · {a.rubric}</p><AnalysisResult value={a.result} /></section>)}</div></>}</CardContent></Card>
       <Card>
         <CardHeader><CardTitle>Interview Prep</CardTitle></CardHeader>
         <CardContent className="space-y-3">

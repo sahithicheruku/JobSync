@@ -657,9 +657,15 @@ Looking for:
     // Create all jobs
     let createdCount = 0;
     for (const jobData of jobs) {
+      const seededJob = { ...jobData };
+      if (seededJob.applied) {
+        const recentDate = new Date(`2026-10-${String(20 + (createdCount % 7)).padStart(2, "0")}T10:00:00`);
+        seededJob.createdAt = recentDate;
+        seededJob.appliedDate = recentDate;
+      }
       await prisma.job.create({
         data: {
-          ...jobData,
+          ...seededJob,
           jobUrl: `https://demo.jobsync.local/${jobData.jobUrl ? jobData.jobUrl.replace(/^https?:\/\//, "").replace(/[^a-z0-9]+/gi, "-").toLowerCase() : `job-${createdCount + 1}`}`,
           userId: user.id,
         },
