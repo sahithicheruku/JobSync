@@ -42,6 +42,16 @@ async function main() {
     [resumes[0], jobs[7], "match", 61, "product analytics and stakeholder communication"],
     [resumes[1], jobs[8], "review", 76, "data engineering and operational reliability"],
     [resumes[0], jobs[9], "match", 58, "machine learning fundamentals and experimentation"],
+    [resumes[1], jobs[10], "match", 86, "Java services, APIs, and PostgreSQL"],
+    [resumes[0], jobs[11], "review", 64, "resume clarity and measurable outcomes"],
+    [resumes[1], jobs[12], "match", 89, "AI service design and cloud deployment"],
+    [resumes[0], jobs[13], "match", 72, "data visualization and stakeholder reporting"],
+    [resumes[1], jobs[14], "review", 82, "platform operations and incident response"],
+    [resumes[0], jobs[15], "match", 56, "program planning and executive communication"],
+    [resumes[1], jobs[16], "match", 87, "distributed systems and API ownership"],
+    [resumes[0], jobs[17], "review", 69, "machine learning project framing"],
+    [resumes[1], jobs[18], "match", 79, "analytics engineering and SQL"],
+    [resumes[0], jobs[19], "match", 91, "platform reliability and automation"],
   ];
   for (const [resume, job, kind, score, focus] of analyses) {
     const text = `${resume.title}:${job.id}:${focus}`;

@@ -275,11 +275,11 @@ const pythonDevTitle = await prisma.jobTitle.upsert({
 
     if (process.env.DEMO_USER_EMAIL) {
       for (const company of [
-        ["Atlassian", "atlassian"], ["HubSpot", "hubspot"], ["Datadog", "datadog"], ["Snowflake", "snowflake"],
+        ["Atlassian", "atlassian"], ["HubSpot", "hubspot"], ["Datadog", "datadog"], ["Snowflake", "snowflake"], ["Cloudflare", "cloudflare"], ["ServiceNow", "servicenow"], ["Vertex Systems", "vertex-systems"], ["Northstar Analytics", "northstar-analytics"],
       ]) await prisma.company.upsert({ where: { value: company[1] }, update: { label: company[0] }, create: { label: company[0], value: company[1], createdBy: user.id } });
       for (const title of [
         ["Software Engineer", "software-engineer"], ["Java Developer", "java-developer"], ["AI Engineer", "ai-engineer"],
-        ["Machine Learning Engineer", "machine-learning-engineer"], ["Data Analyst", "data-analyst"],
+        ["Machine Learning Engineer", "machine-learning-engineer"], ["Data Analyst", "data-analyst"], ["Senior Software Engineer", "senior-software-engineer"],
       ]) await prisma.jobTitle.upsert({ where: { value: title[1] }, update: { label: title[0] }, create: { label: title[0], value: title[1], createdBy: user.id } });
       for (const location of [
         ["Dallas, TX", "dallas-tx", "Texas", "USA"], ["Austin, TX", "austin-tx", "Texas", "USA"],
@@ -621,6 +621,38 @@ Looking for:
         locationId: puneLocation.id,
       },
     ];
+
+    if (process.env.DEMO_USER_EMAIL) {
+      const extraJobs = [
+        ["AI Engineer", "Atlassian", "Seattle, WA", "interview", 2026, 1],
+        ["Machine Learning Engineer", "Snowflake", "Remote", "applied", 2026, 2],
+        ["Data Analyst", "HubSpot", "Boston, MA", "draft", 2026, 3],
+        ["Business Intelligence Analyst", "Datadog", "New York, NY", "rejected", 2026, 4],
+        ["Technical Program Manager", "Cloudflare", "Austin, TX", "offer", 2026, 5],
+        ["Senior Software Engineer", "ServiceNow", "Dallas, TX", "applied", 2026, 6],
+        ["Software Engineer", "Vertex Systems", "Chicago, IL", "draft", 2026, 7],
+        ["Platform Engineer", "Northstar Analytics", "Denver, CO", "interview", 2026, 8],
+      ];
+      const companyByValue = await prisma.company.findMany({ where: { createdBy: user.id } });
+      const titleByValue = await prisma.jobTitle.findMany({ where: { createdBy: user.id } });
+      const locationByValue = await prisma.location.findMany({ where: { createdBy: user.id } });
+      const statusByValue = Object.fromEntries(statuses.map((item) => [item.value, item]));
+      for (const [title, company, location, status, year, month] of extraJobs) {
+        const titleRecord = titleByValue.find((item) => item.label === title);
+        const companyRecord = companyByValue.find((item) => item.label === company);
+        const locationRecord = locationByValue.find((item) => item.label === location);
+        if (!titleRecord || !companyRecord || !locationRecord) continue;
+        jobs.push({
+          jobUrl: `https://demo.jobsync.local/extra-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${month}`,
+          description: `${title} opportunity focused on dependable delivery, cross-functional collaboration, and measurable product outcomes.\n\nRequirements:\n• Strong software engineering fundamentals\n• Experience collaborating across teams\n• Clear communication and practical problem solving`,
+          jobType: "Full-time", createdAt: new Date(`${year}-${String(month).padStart(2, "0")}-15`),
+          applied: ["applied", "interview", "offer"].includes(status),
+          appliedDate: ["applied", "interview", "offer"].includes(status) ? new Date(`${year}-${String(month).padStart(2, "0")}-18`) : null,
+          statusId: statusByValue[status].id, jobTitleId: titleRecord.id, companyId: companyRecord.id,
+          jobSourceId: linkedinSource?.id, salaryRange: "$95,000 - $165,000", locationId: locationRecord.id, resumeId: resume?.id,
+        });
+      }
+    }
 
     // Create all jobs
     let createdCount = 0;

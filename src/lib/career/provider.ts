@@ -14,6 +14,22 @@ export async function generateJSON<T>(settings: AiModel | undefined, instruction
   if (isDemoUser(identity?.id, identity?.email)) {
     const demos = { match: matchDemo, review: reviewDemo, assistant: assistantDemo };
     if (!demoKey) throw new Error("AI_DEMO_KEY_REQUIRED");
+    if (demoKey === "assistant" && Array.isArray((input as { conversation?: unknown[] })?.conversation)) {
+      const conversation = (input as { conversation: { content?: string }[] }).conversation;
+      const prompt = conversation.at(-1)?.content?.toLowerCase() || "";
+      const variants = [
+        { answer: "Start with a concrete example from your backend work, explain the trade-off you faced, and close with the result.", evidence: ["The seeded resume shows production backend and cloud experience."], nextSteps: ["Use a Situation–Action–Result structure.", "Name one measurable outcome you can verify."] },
+        { answer: "For this role, be ready to explain service boundaries, failure handling, and how you would monitor the system in production.", evidence: ["The selected job emphasizes scalable services and operational reliability."], nextSteps: ["Review retry and timeout strategies.", "Prepare one observability example."] },
+        { answer: "Your answer should connect the technical decision to the customer or team outcome, then acknowledge what you would improve next time.", evidence: ["The demo profile includes cross-functional delivery and automation work."], nextSteps: ["Practice a concise two-minute response.", "Include the decision, result, and lesson learned."] },
+        { answer: "Discuss how you would break the problem into smaller services, choose a data contract, and validate the design with tests and monitoring.", evidence: ["The profile includes API, microservice, and cloud delivery experience."], nextSteps: ["Prepare one architecture diagram mentally.", "Explain one trade-off clearly."] },
+        { answer: "Focus on the user's need first, then describe the simplest technical solution that could be measured and improved after release.", evidence: ["The seeded experience includes product delivery and automation work."], nextSteps: ["State the success metric.", "Mention how you handled feedback."] },
+        { answer: "A strong answer here should cover debugging steps, evidence gathered, the fix, and how you prevented the issue from returning.", evidence: ["The target role values reliable production systems."], nextSteps: ["Review logs, metrics, and traces.", "Prepare a concise incident example."] },
+        { answer: "Explain how you would evaluate model or pipeline quality, monitor drift, and communicate uncertainty to non-technical partners.", evidence: ["The demo profile includes Python, data, and cloud foundations."], nextSteps: ["Review precision and recall trade-offs.", "Prepare an example of communicating risk."] },
+        { answer: "Compare two reasonable implementation options, choose one for the stated constraints, and explain what would make you revisit that choice.", evidence: ["The resume shows experience across backend and platform technologies."], nextSteps: ["Practice naming constraints first.", "End with a clear decision."] },
+      ];
+      const selected = variants[prompt.includes("evaluate") ? conversation.length % variants.length : prompt.length % variants.length];
+      return { value: schema.parse(selected), model: "demo", provider: "demo" };
+    }
     return { value: schema.parse(demos[demoKey]), model: "demo", provider: "demo" };
   }
   if (provider === AiProvider.OPENAI) {

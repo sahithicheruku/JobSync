@@ -42,7 +42,7 @@ async function main() {
 
   const demo = Boolean(process.env.DEMO_USER_EMAIL);
   const jobs = await prisma.job.findMany({ where: { userId: user.id, ...(demo ? { jobUrl: { startsWith: "https://demo.jobsync.local/" } } : {}) }, select: { id: true }, orderBy: { createdAt: "asc" } });
-  const catalog = await prisma.course.findMany({ take: demo ? 2 : 12, orderBy: { courseName: "asc" } });
+  const catalog = await prisma.course.findMany({ take: demo ? 5 : 12, orderBy: { courseName: "asc" } });
   if (demo) await prisma.courseRecommendation.deleteMany({ where: { userId: user.id } });
   const recommendationJobs = demo ? jobs.slice(0, 4) : jobs;
   for (const job of recommendationJobs) for (const [index, course] of catalog.entries()) {
