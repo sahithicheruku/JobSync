@@ -3,6 +3,9 @@ if (!SEED_EMAIL) throw new Error("Set DEMO_USER_EMAIL explicitly for demo seedin
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
+async function ensureLocation(data) {
+  return (await prisma.location.findFirst({ where: { value: data.value, createdBy: data.createdBy } })) || prisma.location.create({ data });
+}
 
 async function seedJobs() {
   try {
@@ -230,55 +233,60 @@ const pythonDevTitle = await prisma.jobTitle.upsert({
   },
 });
 
-    // Create additional locations
-    const bangaloreLocation = await prisma.location.create({
-      data: {
+    // Create additional locations idempotently
+    const bangaloreLocation = await ensureLocation({
         label: "Bangalore, India",
         value: "bangalore-india",
         stateProv: "Karnataka",
         country: "India",
         createdBy: user.id,
-      },
     });
 
-    const puneLocation = await prisma.location.create({
-      data: {
+    const puneLocation = await ensureLocation({
         label: "Pune, India",
         value: "pune-india",
         stateProv: "Maharashtra",
         country: "India",
         createdBy: user.id,
-      },
     });
 
-    const remoteLocation = await prisma.location.create({
-      data: {
+    const remoteLocation = await ensureLocation({
         label: "Remote",
         value: "remote",
         country: "Remote",
         createdBy: user.id,
-      },
     });
 
-    const sanFranciscoLocation = await prisma.location.create({
-      data: {
+    const sanFranciscoLocation = await ensureLocation({
         label: "San Francisco, CA",
         value: "san-francisco-ca",
         stateProv: "California",
         country: "USA",
         createdBy: user.id,
-      },
     });
 
-    const seattleLocation = await prisma.location.create({
-      data: {
+    const seattleLocation = await ensureLocation({
         label: "Seattle, WA",
         value: "seattle-wa",
         stateProv: "Washington",
         country: "USA",
         createdBy: user.id,
-      },
     });
+
+    if (process.env.DEMO_USER_EMAIL) {
+      for (const company of [
+        ["Atlassian", "atlassian"], ["HubSpot", "hubspot"], ["Datadog", "datadog"], ["Snowflake", "snowflake"],
+      ]) await prisma.company.upsert({ where: { value: company[1] }, update: { label: company[0] }, create: { label: company[0], value: company[1], createdBy: user.id } });
+      for (const title of [
+        ["Software Engineer", "software-engineer"], ["Java Developer", "java-developer"], ["AI Engineer", "ai-engineer"],
+        ["Machine Learning Engineer", "machine-learning-engineer"], ["Data Analyst", "data-analyst"],
+      ]) await prisma.jobTitle.upsert({ where: { value: title[1] }, update: { label: title[0] }, create: { label: title[0], value: title[1], createdBy: user.id } });
+      for (const location of [
+        ["Dallas, TX", "dallas-tx", "Texas", "USA"], ["Austin, TX", "austin-tx", "Texas", "USA"],
+        ["New York, NY", "new-york-ny", "New York", "USA"], ["Boston, MA", "boston-ma", "Massachusetts", "USA"],
+        ["Chicago, IL", "chicago-il", "Illinois", "USA"],
+      ]) await ensureLocation({ label: location[0], value: location[1], stateProv: location[2], country: location[3], createdBy: user.id });
+    }
 
     const hyderabadLocation = await prisma.location.findFirst({
       where: { value: "hyderabad-india" },
