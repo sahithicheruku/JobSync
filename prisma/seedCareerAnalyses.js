@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const result = (score, focus) => ({
+  overall: score,
+  availableWeight: 100,
+  missingSkills: ["Stakeholder communication", "Observability"],
+  components: [
+    { name: "skills", score, effectiveWeight: 0.6 },
+    { name: "experience", score: Math.max(0, score - 4), effectiveWeight: 0.4 },
+  ],
   matching_score: score,
   summary: `This analysis highlights ${focus}.`,
   strengths: [`Relevant experience is visible for ${focus}.`],
@@ -26,13 +33,14 @@ async function main() {
     where: { userId: user.id, jobUrl: { startsWith: "https://demo.jobsync.local/" } },
     include: { JobTitle: true },
     orderBy: { createdAt: "asc" },
-    take: 12,
+    take: 24,
   });
   if (resumes.length < 2 || jobs.length < 10) throw new Error("Seed resumes and ten demo jobs before analyses.");
 
   await prisma.careerAnalysis.deleteMany({ where: { userId: user.id, provider: "demo-seed" } });
   const analyses = [
     [resumes[0], jobs[0], "match", 91, "SQL, experimentation, and product insights"],
+    [resumes[1], jobs[0], "match", 83, "Python services and cloud systems"],
     [resumes[1], jobs[1], "match", 84, "Python services and cloud systems"],
     [resumes[1], jobs[2], "match", 78, "data pipelines and reporting"],
     [resumes[0], jobs[3], "match", 73, "backend engineering and distributed systems"],

@@ -6,7 +6,7 @@ import { defaultModel } from "@/models/ai.model";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
 
 type Result = { matching_score?: number | null; score?: number; summary?: string; explanation?: string; strengths?: string[]; weaknesses?: string[]; suggestions?: (string | { category: string; value: string[] })[]; detailed_analysis?: { category: string; value: string[] }[]; additional_comments?: string[]; ats?: { explanation: string; checks: { label: string; passed: boolean }[] } };
-type Analysis = { id: string; kind: string; resumeTitle: string; jobTitle: string | null; createdAt: string; model: string; rubric: string; result: Result };
+type Analysis = { id: string; kind: string; resumeTitle: string; jobTitle: string | null; jobId?: string | null; createdAt: string; model: string; rubric: string; result: Result };
 type Data = { resumes: { id: string; title: string }[]; jobs: { id: string; JobTitle: { label: string }; Company: { label: string } }[]; history: Analysis[]; insights: { applications: number; interviews: number; conversion: number | null; analyzedJobs: number; missingSkills: { skill: string; jobs: number }[]; bestFitRoles: { role: string; score: number; sample: number }[]; explanation: string } };
 const demoInsights = { learning: ["Build stronger SQL querying skills", "Practice behavioral interview storytelling", "Learn production monitoring basics"], roles: [{ role: "Product Data Analyst", match: 91 }, { role: "Technical Program Manager", match: 86 }, { role: "Business Intelligence Analyst", match: 82 }], gaps: ["SQL", "Stakeholder communication", "Observability"], resume: ["Lead with measurable outcomes in each experience bullet", "Add a concise skills section near the top", "Tailor the summary to the target role"] };
 function AnalysisResult({ value }: { value: Result }) {
@@ -51,7 +51,24 @@ export default function CareerWorkspace() {
   const [mockActive, setMockActive] = useState(false);
   const [mockAnswer, setMockAnswer] = useState("");
   const [mockMessages, setMockMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
-  const refresh = async () => { const response = await fetch("/api/career"); const body = await response.json(); if (!response.ok) throw new Error(body.error); setData(body); };
+  const refresh = async () => {
+    const response = await fetch("/api/career");
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error);
+    setData(body);
+    setResumeId(current => current || body.resumes[0]?.id || "");
+    setJobId(current => current || body.jobs[0]?.id || "");
+    setAnalysisId(current => current || body.history[0]?.id || "");
+    const matches = body.history.filter((item: Analysis) => item.kind === "match");
+    const pair = matches.find((before: Analysis) => matches.some((after: Analysis) => compatibleWith(before, after)));
+    if (pair) {
+      const after = matches.find((item: Analysis) => compatibleWith(pair, item));
+      setBeforeId(current => current || pair.id);
+      setAfterId(current => current || after?.id || "");
+    }
+  };
+  // The initial load intentionally runs once; refresh is also used after mutations.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
   async function request(url: string, payload: unknown) {
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -62,6 +79,7 @@ export default function CareerWorkspace() {
     try { setResult(await request(`/api/ai/resume/${kind}`, { resumeId, jobId: jobId || undefined, selectedModel: getFromLocalStorage("aiSettings", defaultModel) })); await refresh(); }
     catch (e) { setError(e instanceof Error ? e.message : "Analysis failed"); } finally { setBusy(false); }
   }
+  const compatibleWith = (analysis: Analysis, other: Analysis) => analysis.id !== other.id && analysis.kind === other.kind && analysis.rubric === other.rubric && analysis.jobId === other.jobId;
   async function compare() {
     setBusy(true); setError(""); setComparison(undefined);
     try { setComparison(await request("/api/career", { action: "compare", beforeId, afterId })); }
@@ -246,7 +264,7 @@ export default function CareerWorkspace() {
         </CardContent>
       </Card>
 
-      <Card><CardHeader><CardTitle>Compare resume versions</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm">Analyze versions against the same job, then compare saved snapshots. Changing a resume preserves earlier results.</p><div className="grid gap-4 md:grid-cols-2">{[["Before",beforeId,setBeforeId],["After",afterId,setAfterId]].map(([label,value,setter]) => <label key={label as string}>{label as string}<select className={selectClass} value={value as string} onChange={e => (setter as (v:string)=>void)(e.target.value)}><option value="">Choose saved analysis</option>{data.history.map(h => <option value={h.id} key={h.id}>{h.resumeTitle} · {h.kind} · {h.jobTitle || "General"} · {new Date(h.createdAt).toLocaleString()}</option>)}</select></label>)}</div><Button disabled={busy || !beforeId || !afterId} onClick={compare}>Compare snapshots</Button>{comparison && <><p>Score change: {comparison.delta === null ? "Not comparable" : `${comparison.delta > 0 ? "+" : ""}${comparison.delta} points`}{comparison.sameResumeContent ? " · Same resume content" : " · Different resume content"}</p><p className="text-sm text-muted-foreground">{comparison.explanation}</p><div className="grid gap-6 md:grid-cols-2">{[comparison.before,comparison.after].map((a,i) => <section key={a.id}><h3 className="font-semibold">{i === 0 ? "Before" : "After"}: {a.resumeTitle}</h3><p className="mb-3 text-xs">{a.model} · {a.rubric}</p><AnalysisResult value={a.result} /></section>)}</div></>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Compare resume versions</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm">Analyze versions against the same job, then compare saved snapshots. Changing a resume preserves earlier results.</p><div className="grid gap-4 md:grid-cols-2">{[["Before",beforeId,setBeforeId],["After",afterId,setAfterId]].map(([label,value,setter], index) => { const selected = data.history.find(h => h.id === value); const options = index === 0 || !selected ? data.history : data.history.filter(h => compatibleWith(selected, h)); return <label key={label as string}>{label as string}<select className={selectClass} value={value as string} onChange={e => (setter as (v:string)=>void)(e.target.value)}><option value="">Choose compatible saved analysis</option>{options.map(h => <option value={h.id} key={h.id}>{h.resumeTitle} · {h.kind} · {h.jobTitle || "General"} · {new Date(h.createdAt).toLocaleString()}</option>)}</select></label>; })}</div><Button disabled={busy || !beforeId || !afterId} onClick={compare}>Compare snapshots</Button>{comparison && <><p>Score change: {comparison.delta === null ? "Not comparable" : `${comparison.delta > 0 ? "+" : ""}${comparison.delta} points`}{comparison.sameResumeContent ? " · Same resume content" : " · Different resume content"}</p><p className="text-sm text-muted-foreground">{comparison.explanation}</p><div className="grid gap-6 md:grid-cols-2">{[comparison.before,comparison.after].map((a,i) => <section key={a.id}><h3 className="font-semibold">{i === 0 ? "Before" : "After"}: {a.resumeTitle}</h3><p className="mb-3 text-xs">{a.model} · {a.rubric}</p><AnalysisResult value={a.result} /></section>)}</div></>}</CardContent></Card>
       <Card>
         <CardHeader><CardTitle>Interview Prep</CardTitle></CardHeader>
         <CardContent className="space-y-3">
