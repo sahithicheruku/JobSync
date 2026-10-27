@@ -143,7 +143,7 @@ export function AddJob({
           description: message,
         });
       }
-      redirect(editJob ? "/dashboard/myjobs" : `/dashboard/myjobs/${job.id}`);
+      redirect(editJob ? "/dashboard/myjobs" : `/dashboard/myjobs/${job?.id ?? ""}`);
     });
     toast({
       variant: "success",

@@ -32,6 +32,10 @@ function SigninForm() {
 
   const [errorMessage, setError] = useState("");
   const router = useRouter();
+  const useDemoAccount = () => {
+    form.setValue("email", process.env.NEXT_PUBLIC_DEMO_USER_EMAIL || "");
+    form.setValue("password", process.env.NEXT_PUBLIC_DEMO_USER_PASSWORD || "");
+  };
 
   const onSubmit = async (data: z.infer<typeof SigninFormSchema>) => {
     startTransition(async () => {
@@ -100,6 +104,10 @@ function SigninForm() {
             <Button type="submit" disabled={isPending} className="w-full">
               {isPending ? <Loading /> : "Login"}
             </Button>
+            <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-center">
+              <p className="mb-2 text-xs text-muted-foreground">Explore JobSync with sample data</p>
+              <Button type="button" variant="outline" className="w-full" onClick={useDemoAccount}>Use Demo Account</Button>
+            </div>
             <div
               className="flex h-8 items-end space-x-1"
               aria-live="polite"

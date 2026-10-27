@@ -5,6 +5,7 @@ import { AddCompanyFormSchema } from "@/models/addCompanyForm.schema";
 import { getCurrentUser } from "@/utils/user.utils";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isDemoUser } from "@/lib/demo";
 
 export const getCompanyList = async (
   page = 1,
@@ -133,6 +134,7 @@ export const updateCompany = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email)) throw new Error("Demo companies are protected.");
 
     const { id, company, logoUrl, createdBy } = data;
 

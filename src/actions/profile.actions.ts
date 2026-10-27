@@ -13,6 +13,7 @@ import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import { writeFile } from "fs/promises";
+import { isDemoUser } from "@/lib/demo";
 
 export const getResumeList = async (
   page = 1,
@@ -78,7 +79,6 @@ export const getResumeById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
-
     const resume = prisma.resume.findUnique({
       where: {
         id: resumeId,
@@ -123,6 +123,7 @@ export const addContactInfo = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireEditableResume(user.id, data.resumeId);
 
     const res = await prisma.resume.update({
       where: {
@@ -163,6 +164,7 @@ export const updateContactInfo = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireEditableResume(user.id, data.resumeId);
 
     const res = await prisma.contactInfo.update({
       where: {
@@ -196,6 +198,7 @@ export const deleteResumeById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email)) throw new Error("The demo resume is protected.");
     const owned = await prisma.resume.findFirst({ where: { id: resumeId, profile: { userId: user.id } } });
     if (!owned) throw new Error("Resume not found");
     const attachedFile = owned.FileId ? await prisma.file.findUnique({ where: { id: owned.FileId } }) : null;
@@ -340,6 +343,7 @@ export const updateResumeSummary = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireEditableResume(user.id, data.resumeId);
     const res = await prisma.resumeSection.update({
       where: {
         id: data.id,
@@ -381,6 +385,7 @@ export const addExperience = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireEditableResume(user.id, data.resumeId);
     if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
     if (!await prisma.company.findFirst({ where: { id: data.company, createdBy: user.id } }) || !await prisma.jobTitle.findFirst({ where: { id: data.title, createdBy: user.id } })) throw new Error("Experience reference not found");
 
@@ -436,6 +441,7 @@ export const updateExperience = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    await requireEditableResume(user.id, data.resumeId);
     if (!await prisma.location.findFirst({ where: { id: data.location, createdBy: user.id } })) throw new Error("Location not found");
     if (!await prisma.company.findFirst({ where: { id: data.company, createdBy: user.id } }) || !await prisma.jobTitle.findFirst({ where: { id: data.title, createdBy: user.id } })) throw new Error("Experience reference not found");
 
@@ -566,4 +572,10 @@ export const updateEducation = async (
 
 async function requireOwnedResume(userId: string, id?: string) {
   if (!id || !await prisma.resume.findFirst({ where: { id, profile: { userId } } })) throw new Error("Resume not found");
+}
+
+async function requireEditableResume(userId: string, id?: string) {
+  await requireOwnedResume(userId, id);
+  const resume = await prisma.resume.findUnique({ where: { id }, select: { title: true } });
+  if (isDemoUser(userId, (await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }))?.email) && (resume?.title === "Praveen Potnuri - Full Stack Developer" || id?.endsWith("-ai-ml-demo"))) throw new Error("Seeded demo resumes are protected.");
 }

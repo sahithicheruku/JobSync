@@ -44,6 +44,14 @@ async function seedUser() {
   }
 }
 
+async function seedDemoUser() {
+  const email = process.env.DEMO_USER_EMAIL?.trim().toLowerCase();
+  if (!email) { console.warn("DEMO_USER_EMAIL is not set; skipping demo user."); return; }
+  if (!process.env.DEMO_USER_PASSWORD || process.env.DEMO_USER_PASSWORD.length < 12) throw new Error("Set DEMO_USER_PASSWORD to at least 12 characters before creating the demo account.");
+  const password = await bcrypt.hash(process.env.DEMO_USER_PASSWORD, 12);
+  await prisma.user.upsert({ where: { email }, update: { name: "JobSync Demo", password }, create: { email, name: "JobSync Demo", password } });
+}
+
 async function seedStatus() {
   try {
     const statuses = STATUS_DATA;
@@ -91,6 +99,7 @@ async function seedJobSouces() {
 
 async function main() {
   await seedUser();
+  await seedDemoUser();
   await seedStatus();
   await seedJobSouces();
 }

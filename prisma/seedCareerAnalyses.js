@@ -1,4 +1,5 @@
-if (!process.env.USER_EMAIL) throw new Error("Set USER_EMAIL explicitly for sample seeding");
+const SEED_EMAIL = process.env.DEMO_USER_EMAIL || process.env.USER_EMAIL;
+if (!SEED_EMAIL) throw new Error("Set DEMO_USER_EMAIL explicitly for demo seeding");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -15,7 +16,7 @@ const result = (score, focus) => ({
 });
 
 async function main() {
-  const user = await prisma.user.findUnique({ where: { email: process.env.USER_EMAIL } });
+  const user = await prisma.user.findUnique({ where: { email: SEED_EMAIL } });
   if (!user) throw new Error("User not found. Run the main seed first.");
   const profile = await prisma.profile.findFirst({ where: { userId: user.id } });
   if (!profile) throw new Error("Profile not found. Run seedResume first.");
@@ -25,9 +26,9 @@ async function main() {
     where: { userId: user.id, jobUrl: { startsWith: "https://demo.jobsync.local/" } },
     include: { JobTitle: true },
     orderBy: { createdAt: "asc" },
-    take: 6,
+    take: 12,
   });
-  if (resumes.length < 2 || jobs.length < 6) throw new Error("Seed resumes and six demo jobs before analyses.");
+  if (resumes.length < 2 || jobs.length < 10) throw new Error("Seed resumes and ten demo jobs before analyses.");
 
   await prisma.careerAnalysis.deleteMany({ where: { userId: user.id, provider: "demo-seed" } });
   const analyses = [
@@ -36,6 +37,11 @@ async function main() {
     [resumes[1], jobs[2], "match", 78, "data pipelines and reporting"],
     [resumes[0], jobs[3], "match", 73, "backend engineering and distributed systems"],
     [resumes[1], jobs[4], "review", 88, "platform reliability and automation"],
+    [resumes[0], jobs[5], "match", 67, "React, TypeScript, and frontend delivery"],
+    [resumes[1], jobs[6], "match", 90, "cloud architecture and Python services"],
+    [resumes[0], jobs[7], "match", 61, "product analytics and stakeholder communication"],
+    [resumes[1], jobs[8], "review", 76, "data engineering and operational reliability"],
+    [resumes[0], jobs[9], "match", 58, "machine learning fundamentals and experimentation"],
   ];
   for (const [resume, job, kind, score, focus] of analyses) {
     const text = `${resume.title}:${job.id}:${focus}`;

@@ -6,6 +6,7 @@ import { JOB_TYPES, JobStatus } from "@/models/job.model";
 import { getCurrentUser } from "@/utils/user.utils";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isDemoUser } from "@/lib/demo";
 
 export const getStatusList = async (): Promise<any | undefined> => {
   try {
@@ -214,6 +215,7 @@ export const addJob = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email) && await prisma.job.count({ where: { userId: user.id } }) >= 50) throw new Error("Demo job limit reached.");
 
     const {
       title,
@@ -270,6 +272,7 @@ export const updateJob = async (
     if (!data.id || user.id != data.userId) {
       throw new Error("Id is not provide or no user privilages");
     }
+    if (isDemoUser(user.id, user.email) && (await prisma.job.findFirst({ where: { id: data.id, userId: user.id, jobUrl: { startsWith: "https://demo.jobsync.local/" } } }))) throw new Error("Seeded demo jobs are protected.");
 
     const {
       id,
@@ -329,6 +332,7 @@ export const updateJobStatus = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email) && await prisma.job.findFirst({ where: { id: jobId, userId: user.id, jobUrl: { startsWith: "https://demo.jobsync.local/" } } })) throw new Error("Seeded demo jobs are protected.");
     const dataToUpdate = () => {
       switch (status.value) {
         case "applied":
@@ -372,6 +376,7 @@ export const deleteJobById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email)) throw new Error("Demo jobs are protected.");
 
     const res = await prisma.job.delete({
       where: {

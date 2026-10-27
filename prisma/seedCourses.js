@@ -30,18 +30,22 @@ function courseData(line) {
 }
 
 async function main() {
-  if (!process.env.USER_EMAIL) throw new Error("Set USER_EMAIL before seeding courses.");
+  const seedEmail = process.env.DEMO_USER_EMAIL || process.env.USER_EMAIL;
+  if (!seedEmail) throw new Error("Set DEMO_USER_EMAIL before seeding courses.");
   if (!fs.existsSync(csvPath)) throw new Error(`Course data not found: ${csvPath}`);
-  const user = await prisma.user.findUnique({ where: { email: process.env.USER_EMAIL } });
+  const user = await prisma.user.findUnique({ where: { email: seedEmail } });
   if (!user) throw new Error("User not found. Run npm run seed first.");
 
   const lines = fs.readFileSync(csvPath, "utf8").split(/\r?\n/).slice(1);
   const courses = [...new Map(lines.map(courseData).filter(Boolean).map((course) => [course.courseUrl, course])).values()];
   for (const course of courses.slice(0, 600)) await prisma.course.upsert({ where: { courseUrl: course.courseUrl }, update: course, create: course });
 
-  const jobs = await prisma.job.findMany({ where: { userId: user.id }, select: { id: true } });
-  const catalog = await prisma.course.findMany({ take: 12, orderBy: { courseName: "asc" } });
-  for (const job of jobs) for (const [index, course] of catalog.entries()) {
+  const demo = Boolean(process.env.DEMO_USER_EMAIL);
+  const jobs = await prisma.job.findMany({ where: { userId: user.id, ...(demo ? { jobUrl: { startsWith: "https://demo.jobsync.local/" } } : {}) }, select: { id: true }, orderBy: { createdAt: "asc" } });
+  const catalog = await prisma.course.findMany({ take: demo ? 2 : 12, orderBy: { courseName: "asc" } });
+  if (demo) await prisma.courseRecommendation.deleteMany({ where: { userId: user.id } });
+  const recommendationJobs = demo ? jobs.slice(0, 4) : jobs;
+  for (const job of recommendationJobs) for (const [index, course] of catalog.entries()) {
     const missingSkill = course.skillsGained.split(",")[0]?.trim() || "Professional development";
     await prisma.courseRecommendation.upsert({
       where: { userId_jobId_courseId_missingSkill: { userId: user.id, jobId: job.id, courseId: course.id, missingSkill } },
@@ -49,7 +53,7 @@ async function main() {
       create: { userId: user.id, jobId: job.id, courseId: course.id, missingSkill, matchScore: 1 - index / catalog.length },
     });
   }
-  console.log(`Seeded ${Math.min(courses.length, 600)} courses and recommendations for ${jobs.length} jobs.`);
+  console.log(`Seeded ${Math.min(courses.length, 600)} courses and recommendations for ${recommendationJobs.length} jobs.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); }).finally(() => prisma.$disconnect());

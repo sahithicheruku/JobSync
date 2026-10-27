@@ -1,4 +1,5 @@
-if (!process.env.USER_EMAIL) throw new Error("Set USER_EMAIL explicitly for sample seeding");
+const SEED_EMAIL = process.env.DEMO_USER_EMAIL || process.env.USER_EMAIL;
+if (!SEED_EMAIL) throw new Error("Set DEMO_USER_EMAIL explicitly for demo seeding");
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
@@ -7,7 +8,7 @@ async function seedResume() {
   try {
     // Get the admin user
     const user = await prisma.user.findUnique({
-      where: { email: process.env.USER_EMAIL },
+      where: { email: SEED_EMAIL },
     });
 
     if (!user) {

@@ -5,6 +5,7 @@ import { Activity } from "@/models/activity.model";
 import { AddActivityFormSchema } from "@/models/addActivityForm.schema";
 import { getCurrentUser } from "@/utils/user.utils";
 import { z } from "zod";
+import { isDemoUser } from "@/lib/demo";
 
 export const getAllActivityTypes = async (): Promise<any | undefined> => {
   try {
@@ -119,6 +120,7 @@ export const createActivity = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email) && await prisma.activity.count({ where: { userId: user.id } }) >= 200) throw new Error("Demo activity limit reached.");
 
     const {
       activityName,
@@ -156,6 +158,7 @@ export const deleteActivityById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email) && await prisma.activity.findFirst({ where: { id: activityId, userId: user.id, description: { startsWith: "[DEMO-CALENDAR]" } } })) throw new Error("Seeded demo activities are protected.");
 
     const res = await prisma.activity.delete({
       where: {
@@ -179,7 +182,6 @@ export const startActivityById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
-
     const activity = await prisma.activity.findFirst({
       where: {
         id: activityId,
@@ -229,6 +231,7 @@ export const stopActivityById = async (
     if (!user) {
       throw new Error("Not authenticated");
     }
+    if (isDemoUser(user.id, user.email) && await prisma.activity.findFirst({ where: { id: activityId, userId: user.id, description: { startsWith: "[DEMO-CALENDAR]" } } })) throw new Error("Seeded demo activities are protected.");
 
     const activity = await prisma.activity.update({
       where: {

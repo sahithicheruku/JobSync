@@ -4,6 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/db";
 import { apiError, ApiError, requireUser } from "@/lib/career/http";
+import { isDemoUser } from "@/lib/demo";
 const storageRoot = () => path.resolve(process.env.NODE_ENV === "production" ? "/data/files/resumes" : "data/files/resumes");
 export async function POST(req: NextRequest) {
   let written: string | undefined;
@@ -16,6 +17,11 @@ export async function POST(req: NextRequest) {
     if (!title || title.length > 200) throw new ApiError(400, "Provide a title under 200 characters.");
     const existing = id ? await prisma.resume.findFirst({ where: { id, profile: { userId } }, include: { File: true } }) : null;
     if (id && !existing) throw new ApiError(404, "Resume not found.");
+    const account = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const demo = isDemoUser(userId, account?.email);
+    const seededResume = existing && (existing.title === "Praveen Potnuri - Full Stack Developer" || existing.id.endsWith("-ai-ml-demo"));
+    if (demo && seededResume) throw new ApiError(403, "Seeded demo resumes are protected.");
+    if (demo && !existing && await prisma.resume.count({ where: { profile: { userId } } }) >= 10) throw new ApiError(400, "Demo resume limit reached.");
     const file = form.get("file");
     let upload: { fileName: string; filePath: string; fileType: string } | undefined;
     if (file instanceof File && file.size) {

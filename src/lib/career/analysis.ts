@@ -9,6 +9,7 @@ import { convertJobToText, convertResumeToText } from "@/utils/ai.utils";
 import { ApiError } from "./http";
 import { atsChecks, extractionSchema, RUBRIC, scoreMatch, verifyEvidence } from "./scoring";
 import { generateJSON, objectSchema, stringSchema, stringsSchema } from "./provider";
+import { isDemoUser } from "../demo";
 
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
 export async function loadDocuments(userId: string, resumeId: string, jobId?: string) {
@@ -40,9 +41,13 @@ export async function loadDocuments(userId: string, resumeId: string, jobId?: st
 const requirementJSON = objectSchema({ requirement: stringSchema, jobEvidence: stringSchema, resumeEvidence: stringSchema, assessment: { type: "string", enum: ["met", "partial", "missing", "unknown"] }, explanation: stringSchema });
 const extractionJSON = objectSchema(Object.fromEntries(["skills", "experience", "education"].map(key => [key, { type: "array", items: requirementJSON }])));
 export async function matchResume(userId: string, resumeId: string, jobId: string, settings?: AiModel) {
+  const account = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (isDemoUser(userId, account?.email) && await prisma.careerAnalysis.count({ where: { userId } }) >= 100) throw new ApiError(400, "Analysis history limit reached.");
   const { resume, resumeText, job, jobText } = await loadDocuments(userId, resumeId, jobId);
-  const generated = await generateJSON(settings, "Extract distinct explicit job requirements into skills, experience, education. Include exact verbatim jobEvidence for every requirement and exact resumeEvidence when available. Interpret relevant evidence conservatively. Met requires direct supporting evidence; partial means some evidence; missing means no evidence found in this resume, never a claim the person lacks a skill; unknown means insufficient/ambiguous evidence. Do not infer years from overlapping roles. Empty arrays mean no explicit requirements. Explain each assessment. Do not score.", { resume: resumeText, job: jobText }, extractionSchema, extractionJSON, "match");
-  const evidence = process.env.AI_DEMO_MODE === "true" ? generated.value : extractionSchema.parse(Object.fromEntries(Object.entries(generated.value).map(([key, items]) => [key, verifyEvidence(items, resumeText, jobText)])));
+  const identity = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const demo = isDemoUser(userId, identity?.email);
+  const generated = await generateJSON(settings, "Extract distinct explicit job requirements into skills, experience, education. Include exact verbatim jobEvidence for every requirement and exact resumeEvidence when available. Interpret relevant evidence conservatively. Met requires direct supporting evidence; partial means some evidence; missing means no evidence found in this resume, never a claim the person lacks a skill; unknown means insufficient/ambiguous evidence. Do not infer years from overlapping roles. Empty arrays mean no explicit requirements. Explain each assessment. Do not score.", { resume: resumeText, job: jobText }, extractionSchema, extractionJSON, "match", { id: userId, email: identity?.email });
+  const evidence = demo ? generated.value : extractionSchema.parse(Object.fromEntries(Object.entries(generated.value).map(([key, items]) => [key, verifyEvidence(items, resumeText, jobText)])));
   let semantic: number | null = null;
   try {
     const response = await fetch(`${process.env.ML_SERVICE_URL || "http://localhost:8000"}/api/semantic-similarity`, { method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(30000), body: JSON.stringify({ resume: resumeText, job: jobText }) });
@@ -56,10 +61,14 @@ export async function matchResume(userId: string, resumeId: string, jobId: strin
 const reviewSchema = z.object({ summary: z.string(), strengths: z.array(z.string()), weaknesses: z.array(z.string()), suggestions: z.array(z.string()), keywordGaps: z.array(z.object({ keyword: z.string(), jobEvidence: z.string() })), weakBullets: z.array(z.object({ quote: z.string(), reason: z.string(), suggestion: z.string() })), jobSuggestions: z.array(z.string()) });
 const reviewJSON = objectSchema({ summary: stringSchema, strengths: stringsSchema, weaknesses: stringsSchema, suggestions: stringsSchema, keywordGaps: { type: "array", items: objectSchema({ keyword: stringSchema, jobEvidence: stringSchema }) }, weakBullets: { type: "array", items: objectSchema({ quote: stringSchema, reason: stringSchema, suggestion: stringSchema }) }, jobSuggestions: stringsSchema });
 export async function reviewResume(userId: string, resumeId: string, jobId?: string, settings?: AiModel) {
+  const account = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (isDemoUser(userId, account?.email) && await prisma.careerAnalysis.count({ where: { userId } }) >= 100) throw new ApiError(400, "Analysis history limit reached.");
   const { resume, resumeText, job, jobText } = await loadDocuments(userId, resumeId, jobId);
-  const generated = await generateJSON(settings, "Review this resume. Cite exact verbatim weak bullet quotes and explain how to improve them. Never fabricate numbers or accomplishments; request real evidence where needed. Find job keyword gaps with exact jobEvidence, and give job-specific suggestions only if a job is provided. Without a job, keywordGaps and jobSuggestions must be empty. Do not produce any scores. Describe formatting limitations of text-only review.", { resume: resumeText, job: jobText || null }, reviewSchema, reviewJSON, "review");
+  const identity = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const demo = isDemoUser(userId, identity?.email);
+  const generated = await generateJSON(settings, "Review this resume. Cite exact verbatim weak bullet quotes and explain how to improve them. Never fabricate numbers or accomplishments; request real evidence where needed. Find job keyword gaps with exact jobEvidence, and give job-specific suggestions only if a job is provided. Without a job, keywordGaps and jobSuggestions must be empty. Do not produce any scores. Describe formatting limitations of text-only review.", { resume: resumeText, job: jobText || null }, reviewSchema, reviewJSON, "review", { id: userId, email: identity?.email });
   const review = generated.value;
-  if (process.env.AI_DEMO_MODE !== "true") {
+  if (!demo) {
     for (const bullet of review.weakBullets) if (!bullet.quote.trim() || !resumeText.includes(bullet.quote)) throw new Error("Unverifiable bullet");
     for (const gap of review.keywordGaps) if (!gap.keyword.trim() || !gap.jobEvidence.trim() || !jobText.includes(gap.jobEvidence) || resumeText.toLowerCase().includes(gap.keyword.toLowerCase())) throw new Error("Unverifiable keyword gap");
     if (!job && (review.keywordGaps.length || review.jobSuggestions.length)) throw new Error("Job-specific claims without a job");
