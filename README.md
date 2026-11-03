@@ -1,6 +1,62 @@
 # JobSync — AI Career Intelligence Platform
 
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-React-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-6-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+
+## Live Demo
+
+[Open JobSync](https://job-sync-beige.vercel.app/dashboard)
+
 JobSync connects your application tracker, resumes, job requirements, and learning plan. Built on the existing Next.js application: dashboards, jobs, activities, resume builder/PDF uploads, course recommendations, administration, and OpenAI/Ollama settings remain available.
+
+![JobSync dashboard preview](docs/images/dashboard.png)
+
+## Application Preview
+
+These screenshots are captured from the implemented JobSync application and focus on its tracking, analysis, and career-intelligence workflows.
+
+| Dashboard | My Jobs |
+| --- | --- |
+| ![Dashboard](docs/images/dashboard.png)<br><br>**Dashboard** — Application metrics, recent jobs, activity charts, and the application funnel. | ![My Jobs](docs/images/my-jobs.png)<br><br>**My Jobs** — Job records and application statuses organized in a searchable workspace. |
+
+| Resume Analysis | Career Intelligence |
+| --- | --- |
+| ![Resume Analysis](docs/images/resume-analysis.png)<br><br>**Resume Analysis** — ATS-style readiness checks, evidence, matching context, and suggestions. | ![Career Intelligence](docs/images/career-intelligence.png)<br><br>**Career Intelligence** — Recorded application outcomes, best-fit roles, skill gaps, and learning priorities. |
+
+![Resume comparison](docs/images/resume-comparison.png)
+
+**Resume Comparison** — Versioned analysis snapshots compared against the same job context.
+
+## System Architecture
+
+The Next.js application owns authenticated UI, persistence boundaries, and analysis routes. Prisma stores account-scoped records in PostgreSQL, while the private FastAPI service handles PDF/text extraction, spaCy skill extraction, and Sentence Transformer similarity. Optional OpenAI Responses API or Ollama paths provide generated feedback when configured.
+
+```mermaid
+flowchart LR
+  browser[Next.js React TypeScript UI] --> app[Next.js App Router + route handlers]
+  app --> auth[Auth.js credentials]
+  app --> db[(PostgreSQL via Prisma)]
+  app --> ml[Python FastAPI ML service]
+  ml --> nlp[spaCy + Sentence Transformers]
+  app --> provider[OpenAI Responses API or Ollama]
+  compose[Docker Compose] -. runs .-> app
+  compose -. runs .-> ml
+```
+
+## Resume Analysis Workflow
+
+```mermaid
+flowchart LR
+  user[Authenticated user selects resume + job] --> extract[Extract supported PDF/text input]
+  extract --> skills[spaCy skill extraction]
+  extract --> embed[all-MiniLM-L6-v2 embeddings]
+  skills --> score[Weighted rubric + ATS checks]
+  embed --> score
+  score --> validate[Validate evidence and provider output]
+  validate --> persist[Persist analysis snapshot]
+  persist --> insights[Show match, gaps, suggestions, and courses]
+```
+
+The weighted guidance rubric uses skills 40%, experience 25%, education 10%, and semantic similarity 25%; unavailable components are excluded and remaining weights are normalized. Deterministic checks and scoring are kept distinct from optional LLM-generated feedback, and scores are not hiring probabilities.
 
 ## Career Intelligence
 
